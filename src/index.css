@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@media print {
+  html, body, #root {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+    color: black !important;
+  }
+  .h-screen {
+    height: auto !important;
+  }
+  .overflow-hidden {
+    overflow: visible !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+    position: static !important;
+  }
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+  .break-before-page {
+    break-before: page;
+  }
+  table {
+    page-break-inside: auto;
+  }
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  td, th {
+    page-break-inside: avoid;
+  }
+}
+
+.print-only {
+  display: none;
+}
