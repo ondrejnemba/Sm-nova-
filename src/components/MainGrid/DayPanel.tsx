@@ -3,12 +3,88 @@ import { cs } from 'date-fns/locale';
 import { useScheduleStore } from '../../store/scheduleStore';
 import { cn } from '../../utils/cn';
 import { getGridDays } from '../../utils/dateGrid';
-import { CalendarDays } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { CalendarDays, Copy, Check, AlertTriangle } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+
+const CopyDayButton = ({ onCopy }: { onCopy: () => boolean }) => {
+  const isCopyMode = useScheduleStore(state => state.isCopyMode);
+  const setCopyMode = useScheduleStore(state => state.setCopyMode);
+  const [copied, setCopied] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    if (copied) {
+      timeout = setTimeout(() => setCopied(false), 2000);
+    }
+    return () => clearTimeout(timeout);
+  }, [copied]);
+
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    if (failed) {
+      timeout = setTimeout(() => setFailed(false), 2000);
+    }
+    return () => clearTimeout(timeout);
+  }, [failed]);
+
+  if (copied) {
+    return (
+      <button className="text-green-600 bg-green-50 p-1.5 rounded-md flex items-center gap-1 cursor-default" disabled title="Úspěšně zkopírováno">
+        <Check className="w-4 h-4" />
+      </button>
+    );
+  }
+
+  if (failed) {
+    return (
+      <button className="text-orange-600 bg-orange-50 p-1.5 rounded-md flex items-center gap-1 cursor-default" disabled title="V tento den nejsou žádné směny">
+        <AlertTriangle className="w-4 h-4" />
+      </button>
+    );
+  }
+
+  if (isCopyMode) {
+    return (
+      <div className="flex gap-1">
+        <button 
+          onClick={() => {
+            const success = onCopy();
+            if (success) {
+              setCopied(true);
+            } else {
+              setFailed(true);
+            }
+          }}
+          className="text-white bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1 transition-colors"
+        >
+          Potvrdit
+        </button>
+        <button 
+          onClick={() => setCopyMode(false)}
+          className="text-gray-500 hover:bg-gray-200 px-2 py-1 rounded-md text-xs font-bold transition-colors"
+        >
+          Zrušit
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button 
+      onClick={() => setCopyMode(true)}
+      className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 p-1.5 rounded-md transition-colors flex items-center gap-1"
+      title="Kopírovat vybraný den do následujícího"
+    >
+      <Copy className="w-4 h-4" />
+    </button>
+  );
+};
 
 export const DayPanel = () => {
   const selectedDay = useScheduleStore(state => state.selectedDay);
   const triggerScrollToDay = useScheduleStore(state => state.triggerScrollToDay);
+  const copyDayToNext = useScheduleStore(state => state.copyDayToNext);
 
   const today = new Date();
   const days = getGridDays();
@@ -35,13 +111,16 @@ export const DayPanel = () => {
     <div className="w-48 border-r-2 border-gray-200 flex flex-col shrink-0 bg-gray-50 no-print">
       <div className="h-12 px-4 font-semibold text-sm text-gray-500 uppercase tracking-wider border-b-2 border-gray-200 bg-gray-50 z-10 flex items-center justify-between shrink-0">
         <span>Dny</span>
-        <button 
-          onClick={() => triggerScrollToDay(format(today, 'yyyy-MM-dd'))}
-          className="text-orange-500 hover:text-orange-700 hover:bg-orange-50 p-1.5 rounded-md transition-colors flex items-center gap-1"
-          title="Dnes"
-        >
-          <CalendarDays className="w-4 h-4" />
-        </button>
+        <div className="flex gap-1">
+          <CopyDayButton onCopy={() => copyDayToNext(selectedDay)} />
+          <button 
+            onClick={() => triggerScrollToDay(format(today, 'yyyy-MM-dd'))}
+            className="text-orange-500 hover:text-orange-700 hover:bg-orange-50 p-1.5 rounded-md transition-colors flex items-center gap-1"
+            title="Dnes"
+          >
+            <CalendarDays className="w-4 h-4" />
+          </button>
+        </div>
       </div>
       <div className="flex-1 py-2 overflow-y-auto" ref={scrollRef}>
         {days.map(day => {

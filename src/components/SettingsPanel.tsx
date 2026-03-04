@@ -1,5 +1,5 @@
 import { useScheduleStore } from '../store/scheduleStore';
-import { X, Plus, Trash2, Edit2, Check } from 'lucide-react';
+import { X, Plus, Trash2, Edit2, Check, GripVertical } from 'lucide-react';
 import { generateId } from '../utils/id';
 import { useState } from 'react';
 import { Employee, MachineGroup, Machine } from '../domain/types';
@@ -12,16 +12,19 @@ export const SettingsPanel = () => {
   const addEmployee = useScheduleStore(state => state.addEmployee);
   const updateEmployee = useScheduleStore(state => state.updateEmployee);
   const deleteEmployee = useScheduleStore(state => state.deleteEmployee);
+  const reorderEmployees = useScheduleStore(state => state.reorderEmployees);
   
   const machineGroups = useScheduleStore(state => state.machineGroups);
   const addMachineGroup = useScheduleStore(state => state.addMachineGroup);
   const updateMachineGroup = useScheduleStore(state => state.updateMachineGroup);
   const deleteMachineGroup = useScheduleStore(state => state.deleteMachineGroup);
+  const reorderMachineGroups = useScheduleStore(state => state.reorderMachineGroups);
   
   const machines = useScheduleStore(state => state.machines);
   const addMachine = useScheduleStore(state => state.addMachine);
   const updateMachine = useScheduleStore(state => state.updateMachine);
   const deleteMachine = useScheduleStore(state => state.deleteMachine);
+  const reorderMachines = useScheduleStore(state => state.reorderMachines);
 
   const snapGranularityMinutes = useScheduleStore(state => state.snapGranularityMinutes);
   const setSnapGranularityMinutes = useScheduleStore(state => state.setSnapGranularityMinutes);
@@ -42,6 +45,11 @@ export const SettingsPanel = () => {
   const [editingEmpId, setEditingEmpId] = useState<string | null>(null);
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingMachineId, setEditingMachineId] = useState<string | null>(null);
+
+  // Drag and Drop States
+  const [draggedEmpIndex, setDraggedEmpIndex] = useState<number | null>(null);
+  const [draggedGroupIndex, setDraggedGroupIndex] = useState<number | null>(null);
+  const [draggedMachineIndex, setDraggedMachineIndex] = useState<number | null>(null);
 
   if (!settingsOpen) return null;
 
@@ -146,8 +154,20 @@ export const SettingsPanel = () => {
           <section>
             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Zaměstnanci</h3>
             <div className="space-y-2 mb-4">
-              {employees.map(emp => (
-                <div key={emp.id} className="flex flex-col p-3 border-2 border-gray-100 rounded-md gap-2">
+              {employees.map((emp, index) => (
+                <div 
+                  key={emp.id} 
+                  draggable
+                  onDragStart={() => setDraggedEmpIndex(index)}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (draggedEmpIndex === null || draggedEmpIndex === index) return;
+                    reorderEmployees(draggedEmpIndex, index);
+                    setDraggedEmpIndex(index);
+                  }}
+                  onDragEnd={() => setDraggedEmpIndex(null)}
+                  className={`flex flex-col p-3 border-2 border-gray-100 rounded-md gap-2 bg-white transition-all ${draggedEmpIndex === index ? 'opacity-50 scale-[0.98]' : ''}`}
+                >
                   {editingEmpId === emp.id ? (
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center gap-2">
@@ -211,6 +231,9 @@ export const SettingsPanel = () => {
                   ) : (
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
+                        <div className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600">
+                          <GripVertical className="w-4 h-4" />
+                        </div>
                         <div className="w-4 h-4 rounded-full" style={{ backgroundColor: emp.color }} />
                         <span className="text-sm font-medium">{emp.name}</span>
                         <span className="text-xs text-gray-400">({emp.weeklyLimitHours}h)</span>
@@ -263,8 +286,20 @@ export const SettingsPanel = () => {
               </button>
             </div>
             <div className="space-y-2">
-              {machineGroups.map(group => (
-                <div key={group.id} className="flex items-center justify-between p-3 border-2 border-gray-100 rounded-md">
+              {machineGroups.map((group, index) => (
+                <div 
+                  key={group.id} 
+                  draggable
+                  onDragStart={() => setDraggedGroupIndex(index)}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (draggedGroupIndex === null || draggedGroupIndex === index) return;
+                    reorderMachineGroups(draggedGroupIndex, index);
+                    setDraggedGroupIndex(index);
+                  }}
+                  onDragEnd={() => setDraggedGroupIndex(null)}
+                  className={`flex items-center justify-between p-3 border-2 border-gray-100 rounded-md bg-white transition-all ${draggedGroupIndex === index ? 'opacity-50 scale-[0.98]' : ''}`}
+                >
                   {editingGroupId === group.id ? (
                     <div className="flex items-center gap-2 flex-1">
                       <input 
@@ -279,7 +314,12 @@ export const SettingsPanel = () => {
                     </div>
                   ) : (
                     <>
-                      <span className="text-sm font-medium">{group.name}</span>
+                      <div className="flex items-center gap-3">
+                        <div className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600">
+                          <GripVertical className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-medium">{group.name}</span>
+                      </div>
                       <div className="flex items-center gap-1">
                         <button onClick={() => setEditingGroupId(group.id)} className="text-gray-500 hover:bg-gray-100 p-1.5 rounded-md">
                           <Edit2 className="w-4 h-4" />
@@ -360,10 +400,22 @@ export const SettingsPanel = () => {
               </button>
             </div>
             <div className="space-y-2">
-              {machines.map(machine => {
+              {machines.map((machine, index) => {
                 const group = machineGroups.find(g => g.id === machine.groupId);
                 return (
-                  <div key={machine.id} className="flex flex-col p-3 border-2 border-gray-100 rounded-md gap-2">
+                  <div 
+                    key={machine.id} 
+                    draggable
+                    onDragStart={() => setDraggedMachineIndex(index)}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      if (draggedMachineIndex === null || draggedMachineIndex === index) return;
+                      reorderMachines(draggedMachineIndex, index);
+                      setDraggedMachineIndex(index);
+                    }}
+                    onDragEnd={() => setDraggedMachineIndex(null)}
+                    className={`flex flex-col p-3 border-2 border-gray-100 rounded-md gap-2 bg-white transition-all ${draggedMachineIndex === index ? 'opacity-50 scale-[0.98]' : ''}`}
+                  >
                     {editingMachineId === machine.id ? (
                       <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-2">
@@ -424,10 +476,15 @@ export const SettingsPanel = () => {
                       </div>
                     ) : (
                         <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-sm font-medium">{machine.name}</div>
-                            <div className="text-xs text-gray-500">
-                              {group?.name} • Max: {machine.capacity} • Min: {machine.minCapacity || 1} • Ideál: {machine.idealCapacity || 1} • V-Sloupce: {machine.virtualColumns || 1}
+                          <div className="flex items-center gap-3">
+                            <div className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600">
+                              <GripVertical className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium">{machine.name}</div>
+                              <div className="text-xs text-gray-500">
+                                {group?.name} • Max: {machine.capacity} • Min: {machine.minCapacity || 1} • Ideál: {machine.idealCapacity || 1} • V-Sloupce: {machine.virtualColumns || 1}
+                              </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-1">

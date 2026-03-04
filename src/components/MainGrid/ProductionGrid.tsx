@@ -31,6 +31,13 @@ export const ProductionGrid = () => {
   const defaultShiftHours = useScheduleStore(state => state.defaultShiftHours);
   const scrollToDayTrigger = useScheduleStore(state => state.scrollToDayTrigger);
   const viewGranularityHours = useScheduleStore(state => state.viewGranularityHours);
+  const selectedShiftIds = useScheduleStore(state => state.selectedShiftIds);
+  const toggleShiftSelection = useScheduleStore(state => state.toggleShiftSelection);
+  const clearShiftSelection = useScheduleStore(state => state.clearShiftSelection);
+  const copySelectedShifts = useScheduleStore(state => state.copySelectedShifts);
+  const isCopyMode = useScheduleStore(state => state.isCopyMode);
+  const selectedMachineIdsForCopy = useScheduleStore(state => state.selectedMachineIdsForCopy);
+  const toggleMachineForCopy = useScheduleStore(state => state.toggleMachineForCopy);
   
   const addShift = useScheduleStore(state => state.addShift);
   const updateShift = useScheduleStore(state => state.updateShift);
@@ -243,7 +250,7 @@ export const ProductionGrid = () => {
   return (
     <div className="flex-1 overflow-auto bg-white relative flex flex-col no-print" ref={scrollContainerRef} onScroll={handleScroll}>
       {/* Header Row */}
-      <div className="flex sticky top-0 z-40 bg-white border-b-2 border-gray-200 w-max min-w-full h-12">
+      <div className="flex sticky top-0 z-40 bg-white border-b-2 border-gray-200 w-max min-w-full h-12" onClick={() => clearShiftSelection()}>
         <div className="w-24 shrink-0 sticky left-0 z-50 bg-gray-50 border-r-2 border-gray-200 flex items-center justify-center gap-1">
           <button 
             onClick={toggleExport}
@@ -296,14 +303,31 @@ export const ProductionGrid = () => {
                   <span className="whitespace-nowrap">{group.name}</span>
                 </div>
                 <div className="flex h-6">
-                  {groupMachines.map(machine => (
-                    <div 
-                      key={machine.id} 
-                      className="flex items-center justify-center text-[10px] font-medium text-gray-600 border-r-2 border-gray-100 last:border-r-0 px-2 whitespace-nowrap min-w-[120px] flex-1"
-                    >
-                      {machine.name} <span className="text-gray-400 ml-1">({machine.capacity})</span>
-                    </div>
-                  ))}
+                  {groupMachines.map(machine => {
+                    const isSelectedForCopy = selectedMachineIdsForCopy.includes(machine.id);
+                    return (
+                      <div 
+                        key={machine.id} 
+                        className={cn(
+                          "flex items-center justify-center text-[10px] font-medium text-gray-600 border-r-2 border-gray-100 last:border-r-0 px-2 whitespace-nowrap min-w-[120px] flex-1 relative",
+                          isCopyMode && "cursor-pointer hover:bg-blue-50 transition-colors"
+                        )}
+                        onClick={() => isCopyMode && toggleMachineForCopy(machine.id)}
+                      >
+                        {isCopyMode && (
+                          <div className="absolute left-2 top-1/2 -translate-y-1/2">
+                            <input 
+                              type="checkbox" 
+                              className="w-3 h-3 cursor-pointer accent-blue-500"
+                              checked={isSelectedForCopy}
+                              onChange={() => {}} // handled by parent onClick
+                            />
+                          </div>
+                        )}
+                        {machine.name} <span className="text-gray-400 ml-1">({machine.capacity})</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -488,6 +512,10 @@ export const ProductionGrid = () => {
                           shifts={machineShifts} 
                           employees={employees}
                           selectedEmployeeId={selectedEmployeeId}
+                          selectedShiftIds={selectedShiftIds}
+                          toggleShiftSelection={toggleShiftSelection}
+                          copySelectedShifts={copySelectedShifts}
+                          isCopyMode={isCopyMode}
                           validationIssues={validationIssues}
                           dragState={dragState}
                           setDragState={setDragState}
@@ -614,6 +642,10 @@ const MachineColumn: React.FC<{
   shifts: Shift[]; 
   employees: Employee[];
   selectedEmployeeId: string | null;
+  selectedShiftIds: string[];
+  toggleShiftSelection: (id: string, multi: boolean) => void;
+  copySelectedShifts: (newStartMinuteAbsolute: number) => void;
+  isCopyMode: boolean;
   validationIssues: ValidationIssue[];
   dragState: DragState;
   setDragState: (state: DragState) => void;
@@ -632,6 +664,10 @@ const MachineColumn: React.FC<{
   shifts, 
   employees,
   selectedEmployeeId,
+  selectedShiftIds,
+  toggleShiftSelection,
+  copySelectedShifts,
+  isCopyMode,
   validationIssues,
   dragState,
   setDragState,
@@ -653,11 +689,20 @@ const MachineColumn: React.FC<{
     if (e.target !== e.currentTarget) return;
     e.preventDefault();
     
+    if (isCopyMode) return; // Prevent creating shifts in copy mode
+
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top;
     const rawMinute = getMinuteFromY(y);
     const snappedMinute = snapMinute(rawMinute);
     
+    if (e.altKey && selectedShiftIds.length > 0) {
+      copySelectedShifts(snappedMinute);
+      return;
+    }
+
+    useScheduleStore.getState().clearShiftSelection();
+
     setDragState({
       type: 'create',
       machineId: machine.id,
@@ -714,6 +759,7 @@ const MachineColumn: React.FC<{
         
         const shiftEmployees = employees.filter(e => shift.employeeIds.includes(e.id));
         const isSelected = selectedEmployeeId && shift.employeeIds.includes(selectedEmployeeId);
+        const isShiftSelected = selectedShiftIds.includes(shift.id);
         const isFaded = selectedEmployeeId && !isSelected;
 
         const shiftIssues = validationIssues.filter(i => i.shiftId === shift.id);
@@ -727,7 +773,11 @@ const MachineColumn: React.FC<{
         let bgColor = '#f0fdf4'; // green-50
         let ringClass = isSelected ? "ring-2 ring-blue-500 ring-offset-1 z-20" : "z-10";
 
-        if (hasHardBlock) {
+        if (isShiftSelected) {
+          bgColor = '#e0f2fe';
+          borderColor = '#3b82f6';
+          ringClass = "ring-2 ring-blue-500 ring-offset-1 z-30";
+        } else if (hasHardBlock) {
           borderColor = '#ef4444';
           bgColor = '#fef2f2';
           ringClass = "ring-2 ring-red-500 ring-offset-1 z-20";
@@ -747,7 +797,7 @@ const MachineColumn: React.FC<{
               "absolute rounded-md border-2 overflow-hidden flex flex-col transition-opacity group select-none",
               ringClass,
               isFaded ? "opacity-30" : "opacity-100",
-              shiftEmployees.length === 0 && !hasHardBlock && !hasSoftBlock ? "border-dashed" : "",
+              shiftEmployees.length === 0 && !hasHardBlock && !hasSoftBlock && !isShiftSelected ? "border-dashed" : "",
               isUnderOccupied && "border-r-4 border-r-orange-400"
             )}
             style={{
@@ -761,11 +811,31 @@ const MachineColumn: React.FC<{
             }}
             onPointerDown={(e) => {
               e.stopPropagation();
+              
+              if (isCopyMode) {
+                toggleShiftSelection(shift.id, true); // In copy mode, clicking always toggles selection without clearing others
+                return;
+              }
+
+              if (e.shiftKey) {
+                toggleShiftSelection(shift.id, true);
+                return;
+              } else if (!isShiftSelected) {
+                toggleShiftSelection(shift.id, false);
+              }
+
               const rect = e.currentTarget.getBoundingClientRect();
               const y = e.clientY - rect.top;
               const rawMinute = getMinuteFromY(e.clientY - gridRef.current!.getBoundingClientRect().top);
               
-              if (e.ctrlKey) {
+              if (e.altKey) {
+                if (selectedShiftIds.length > 1 && isShiftSelected) {
+                  // If we are alt-dragging a shift that is part of a multiple selection,
+                  // we don't do anything special here. The copySelectedShifts handles
+                  // the actual copying when clicking on the destination.
+                  // We could implement multi-drag, but for now we just prevent normal drag.
+                  return;
+                }
                 const newShift = { ...shift, id: generateId() };
                 addShift(newShift);
                 setDragState({ type: 'move', shift: newShift, startOffset: rawMinute - shift.startMinuteAbsolute, isCopy: true });
