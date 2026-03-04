@@ -3,14 +3,15 @@ import { cs } from 'date-fns/locale';
 import { useScheduleStore } from '../../store/scheduleStore';
 import { cn } from '../../utils/cn';
 import { getGridDays } from '../../utils/dateGrid';
-import { CalendarDays, Copy, Check, AlertTriangle } from 'lucide-react';
+import { CalendarDays, Copy, Check, AlertTriangle, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-const CopyDayButton = ({ onCopy }: { onCopy: () => boolean }) => {
+const CopyDayButton = ({ onCopy }: { onCopy: (daysCount: number) => boolean }) => {
   const isCopyMode = useScheduleStore(state => state.isCopyMode);
   const setCopyMode = useScheduleStore(state => state.setCopyMode);
   const [copied, setCopied] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [daysCount, setDaysCount] = useState(1);
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
@@ -46,25 +47,37 @@ const CopyDayButton = ({ onCopy }: { onCopy: () => boolean }) => {
 
   if (isCopyMode) {
     return (
-      <div className="flex gap-1">
+      <div className="flex items-center gap-1 bg-blue-50 p-1 rounded-md border border-blue-100">
+        <div className="flex items-center gap-1 px-1">
+          <span className="text-[10px] font-bold text-blue-600 uppercase">Dny:</span>
+          <input 
+            type="number" 
+            min="1" 
+            max="14" 
+            value={daysCount} 
+            onChange={(e) => setDaysCount(Math.max(1, Math.min(14, parseInt(e.target.value) || 1)))}
+            className="w-8 h-6 text-xs border border-blue-200 rounded text-center focus:outline-none focus:border-blue-400"
+          />
+        </div>
         <button 
           onClick={() => {
-            const success = onCopy();
+            const success = onCopy(daysCount);
             if (success) {
               setCopied(true);
             } else {
               setFailed(true);
             }
           }}
-          className="text-white bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1 transition-colors"
+          className="text-white bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded-md text-xs font-bold transition-colors"
         >
           Potvrdit
         </button>
         <button 
           onClick={() => setCopyMode(false)}
-          className="text-gray-500 hover:bg-gray-200 px-2 py-1 rounded-md text-xs font-bold transition-colors"
+          className="text-gray-500 hover:bg-gray-200 p-1 rounded-md text-xs font-bold transition-colors"
+          title="Zrušit kopírování"
         >
-          Zrušit
+          <X className="w-4 h-4" />
         </button>
       </div>
     );
@@ -112,7 +125,7 @@ export const DayPanel = () => {
       <div className="h-12 px-4 font-semibold text-sm text-gray-500 uppercase tracking-wider border-b-2 border-gray-200 bg-gray-50 z-10 flex items-center justify-between shrink-0">
         <span>Dny</span>
         <div className="flex gap-1">
-          <CopyDayButton onCopy={() => copyDayToNext(selectedDay)} />
+          <CopyDayButton onCopy={(count) => copyDayToNext(selectedDay, count)} />
           <button 
             onClick={() => triggerScrollToDay(format(today, 'yyyy-MM-dd'))}
             className="text-orange-500 hover:text-orange-700 hover:bg-orange-50 p-1.5 rounded-md transition-colors flex items-center gap-1"

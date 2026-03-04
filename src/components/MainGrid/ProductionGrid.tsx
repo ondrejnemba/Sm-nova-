@@ -36,6 +36,7 @@ export const ProductionGrid = () => {
   const clearShiftSelection = useScheduleStore(state => state.clearShiftSelection);
   const copySelectedShifts = useScheduleStore(state => state.copySelectedShifts);
   const isCopyMode = useScheduleStore(state => state.isCopyMode);
+  const setCopyMode = useScheduleStore(state => state.setCopyMode);
   const selectedMachineIdsForCopy = useScheduleStore(state => state.selectedMachineIdsForCopy);
   const toggleMachineForCopy = useScheduleStore(state => state.toggleMachineForCopy);
   
@@ -184,12 +185,45 @@ export const ProductionGrid = () => {
           const newStart = snappedMinute - dragState.startOffset;
           const snappedNewStart = snapMinute(newStart);
           
-          updateShift(dragState.shift.id, {
-            machineId: hoveredMachineId,
-            subColumnIndex: hoveredSubColumnIndex,
-            startMinuteAbsolute: snappedNewStart,
-            endMinuteAbsolute: snappedNewStart + duration
-          });
+          // Collision avoidance logic
+          const otherShifts = shifts.filter(s => 
+            s.id !== dragState.shift.id && 
+            s.machineId === hoveredMachineId && 
+            s.subColumnIndex === hoveredSubColumnIndex
+          );
+
+          let finalStart = snappedNewStart;
+          let finalEnd = snappedNewStart + duration;
+
+          // Find the closest shift that starts AFTER our proposed start
+          const nextShift = otherShifts
+            .filter(s => s.startMinuteAbsolute >= finalStart)
+            .sort((a, b) => a.startMinuteAbsolute - b.startMinuteAbsolute)[0];
+          
+          if (nextShift && nextShift.startMinuteAbsolute < finalEnd) {
+            // Crop the end of our shift
+            finalEnd = nextShift.startMinuteAbsolute;
+          }
+
+          // Find the closest shift that ends BEFORE our proposed end
+          const prevShift = otherShifts
+            .filter(s => s.endMinuteAbsolute <= finalEnd)
+            .sort((a, b) => b.endMinuteAbsolute - a.endMinuteAbsolute)[0];
+          
+          if (prevShift && prevShift.endMinuteAbsolute > finalStart) {
+            // Crop the start of our shift
+            finalStart = prevShift.endMinuteAbsolute;
+          }
+
+          // Ensure minimum duration of 15 minutes if cropped, or don't move if completely blocked
+          if (finalEnd - finalStart >= 15) {
+            updateShift(dragState.shift.id, {
+              machineId: hoveredMachineId,
+              subColumnIndex: hoveredSubColumnIndex,
+              startMinuteAbsolute: finalStart,
+              endMinuteAbsolute: finalEnd
+            });
+          }
         }
       } else if (dragState.type === 'resize-start') {
         if (snappedMinute < dragState.shift.endMinuteAbsolute) {
@@ -334,6 +368,23 @@ export const ProductionGrid = () => {
           })}
         </div>
       </div>
+
+      {/* Copy Mode Banner */}
+      {isCopyMode && (
+        <div className="sticky top-12 left-0 right-0 z-40 bg-blue-600 text-white px-4 py-2 flex items-center justify-between shadow-md no-print">
+          <div className="flex items-center gap-2">
+            <Copy className="w-4 h-4" />
+            <span className="text-sm font-bold">Režim kopírování:</span>
+            <span className="text-sm opacity-90">Vyberte stroje nebo směny a potvrďte v levém panelu dní.</span>
+          </div>
+          <button 
+            onClick={() => setCopyMode(false)}
+            className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-md text-xs font-bold transition-colors flex items-center gap-1"
+          >
+            <X className="w-3 h-3" /> Zrušit
+          </button>
+        </div>
+      )}
 
       {/* Body Row */}
       <div className="flex w-max min-w-full flex-1">
@@ -571,64 +622,70 @@ export const ProductionGrid = () => {
                 Vyprázdnit směnu
               </button>
               
-              {employees.map(emp => {
-                const shift = shifts.find(s => s.id === pickerShiftId);
-                if (!shift) return null;
-                
-                const isAssigned = shift.employeeIds.includes(emp.id);
-                const issues = evaluateEmployeeForShift(emp, shift, shifts, machines);
-                const hasHardBlock = issues.some(i => i.isHardBlock);
-                const hasSoftBlock = issues.some(i => !i.isHardBlock);
+              {employees
+                .filter(emp => {
+                  const shift = shifts.find(s => s.id === pickerShiftId);
+                  if (!shift) return false;
+                  const isAssigned = shift.employeeIds.includes(emp.id);
+                  if (isAssigned) return true; // Always show assigned
+                  const issues = evaluateEmployeeForShift(emp, shift, shifts, machines);
+                  const hasHardBlock = issues.some(i => i.isHardBlock);
+                  return !hasHardBlock; // Hide if has hard block and not assigned
+                })
+                .map(emp => {
+                  const shift = shifts.find(s => s.id === pickerShiftId);
+                  if (!shift) return null;
+                  
+                  const isAssigned = shift.employeeIds.includes(emp.id);
+                  const issues = evaluateEmployeeForShift(emp, shift, shifts, machines);
+                  const hasSoftBlock = issues.some(i => !i.isHardBlock);
 
-                return (
-                  <button
-                    key={emp.id}
-                    disabled={hasHardBlock && !isAssigned}
-                    onClick={() => {
-                      if (isAssigned) {
-                        updateShift(pickerShiftId, { employeeIds: shift.employeeIds.filter(id => id !== emp.id) });
-                      } else if (!hasHardBlock) {
-                        updateShift(pickerShiftId, { employeeIds: [...shift.employeeIds, emp.id] });
-                      }
-                    }}
-                    className={cn(
-                      "w-full text-left px-3 py-2 text-sm rounded-md flex flex-col gap-1 transition-colors mt-1 group",
-                      isAssigned ? "bg-blue-50 border border-blue-200" : "hover:bg-gray-100",
-                      hasHardBlock && !isAssigned ? "opacity-50 cursor-not-allowed bg-gray-50" : ""
-                    )}
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: emp.color }} />
-                        <span className="font-medium">{emp.name}</span>
+                  return (
+                    <button
+                      key={emp.id}
+                      onClick={() => {
+                        if (isAssigned) {
+                          updateShift(pickerShiftId, { employeeIds: shift.employeeIds.filter(id => id !== emp.id) });
+                        } else {
+                          updateShift(pickerShiftId, { employeeIds: [...shift.employeeIds, emp.id] });
+                        }
+                      }}
+                      className={cn(
+                        "w-full text-left px-3 py-2 text-sm rounded-md flex flex-col gap-1 transition-colors mt-1 group",
+                        isAssigned ? "bg-blue-50 border border-blue-200" : "hover:bg-gray-100"
+                      )}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 rounded-full" style={{ backgroundColor: emp.color }} />
+                          <span className="font-medium">{emp.name}</span>
+                        </div>
+                        {hasSoftBlock && !isAssigned && <AlertTriangle className="w-4 h-4 text-orange-500" />}
+                        {isAssigned && (
+                          <div 
+                            className="p-1 rounded text-red-500 hover:bg-red-100 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateShift(pickerShiftId, { employeeIds: shift.employeeIds.filter(id => id !== emp.id) });
+                            }}
+                          >
+                            <X className="w-4 h-4" />
+                          </div>
+                        )}
                       </div>
-                      {hasHardBlock && !isAssigned && <XCircle className="w-4 h-4 text-red-500" />}
-                      {!hasHardBlock && hasSoftBlock && !isAssigned && <AlertTriangle className="w-4 h-4 text-orange-500" />}
-                      {isAssigned && (
-                        <div 
-                          className="p-1 rounded text-red-500 hover:bg-red-100 transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            updateShift(pickerShiftId, { employeeIds: shift.employeeIds.filter(id => id !== emp.id) });
-                          }}
-                        >
-                          <X className="w-4 h-4" />
+                      
+                      {issues.length > 0 && !isAssigned && (
+                        <div className="text-[10px] flex flex-col gap-0.5 pl-6">
+                          {issues.map((issue, idx) => (
+                            <span key={idx} className="text-orange-600">
+                              • {issue.message}
+                            </span>
+                          ))}
                         </div>
                       )}
-                    </div>
-                    
-                    {issues.length > 0 && !isAssigned && (
-                      <div className="text-[10px] flex flex-col gap-0.5 pl-6">
-                        {issues.map((issue, idx) => (
-                          <span key={idx} className={issue.isHardBlock ? "text-red-600" : "text-orange-600"}>
-                            • {issue.message}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
+                    </button>
+                  );
+                })}
             </div>
           </div>
         </div>

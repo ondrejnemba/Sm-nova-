@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Employee, MachineGroup, Machine, Shift } from '../domain/types';
+import { Employee, MachineGroup, Machine, Shift, EmployeeGroup } from '../domain/types';
 import { format, differenceInCalendarDays, startOfDay, addDays } from 'date-fns';
 import { supabase } from '../lib/supabase';
 import { getGridDays } from '../utils/dateGrid';
@@ -20,6 +20,8 @@ interface ScheduleState {
   exportOpen: boolean;
   collapsedGroups: string[];
   expandedMachines: string[];
+  employeeGroups: EmployeeGroup[];
+  collapsedEmployeeGroups: string[];
   snapGranularityMinutes: number;
   defaultShiftHours: number;
   viewGranularityHours: number;
@@ -51,12 +53,16 @@ interface ScheduleState {
   clearShiftSelection: () => void;
   setCopyMode: (isCopy: boolean) => void;
   toggleMachineForCopy: (machineId: string) => void;
-  copyDayToNext: (day: string) => boolean;
+  copyDayToNext: (day: string, daysCount: number) => boolean;
   copySelectedShifts: (newStartMinuteAbsolute: number) => void;
   toggleSettings: () => void;
   toggleExport: () => void;
   toggleGroup: (groupId: string) => void;
   toggleMachineColumns: (machineId: string) => void;
+  addEmployeeGroup: (group: EmployeeGroup) => void;
+  updateEmployeeGroup: (id: string, group: Partial<EmployeeGroup>) => void;
+  deleteEmployeeGroup: (id: string) => void;
+  toggleEmployeeGroup: (groupId: string) => void;
   setSnapGranularityMinutes: (mins: number) => void;
   setDefaultShiftHours: (hours: number) => void;
   setViewGranularityHours: (hours: number) => void;
@@ -103,9 +109,11 @@ export const useScheduleStore = create<ScheduleState>()(
       exportOpen: false,
       collapsedGroups: [],
       expandedMachines: [],
-      snapGranularityMinutes: 30, // Default 30 min for better precision
-      defaultShiftHours: 8, // Default 8 hours
-      viewGranularityHours: 1,
+      employeeGroups: [],
+      collapsedEmployeeGroups: [],
+      snapGranularityMinutes: 60, 
+      defaultShiftHours: 4, 
+      viewGranularityHours: 4, 
       scrollToDayTrigger: 0,
       isSyncing: false,
       lastSyncError: null,
@@ -135,6 +143,20 @@ export const useScheduleStore = create<ScheduleState>()(
         result.splice(endIndex, 0, removed);
         return { employees: result };
       }),
+
+      addEmployeeGroup: (group) => set((state) => ({ employeeGroups: [...state.employeeGroups, group] })),
+      updateEmployeeGroup: (id, group) => set((state) => ({
+        employeeGroups: state.employeeGroups.map(g => g.id === id ? { ...g, ...group } : g)
+      })),
+      deleteEmployeeGroup: (id) => set((state) => ({
+        employeeGroups: state.employeeGroups.filter(g => g.id !== id),
+        employees: state.employees.map(e => e.groupId === id ? { ...e, groupId: undefined } : e)
+      })),
+      toggleEmployeeGroup: (groupId) => set((state) => ({
+        collapsedEmployeeGroups: state.collapsedEmployeeGroups.includes(groupId)
+          ? state.collapsedEmployeeGroups.filter(id => id !== groupId)
+          : [...state.collapsedEmployeeGroups, groupId]
+      })),
 
       addMachineGroup: (group) => set((state) => {
         const newState = { machineGroups: [...state.machineGroups, group] };
@@ -219,78 +241,81 @@ export const useScheduleStore = create<ScheduleState>()(
         }
       }),
       clearShiftSelection: () => set({ selectedShiftIds: [] }),
-      setCopyMode: (isCopy) => set({ isCopyMode: isCopy, selectedMachineIdsForCopy: [] }),
+      setCopyMode: (isCopy) => set({ 
+        isCopyMode: isCopy, 
+        selectedMachineIdsForCopy: [],
+        selectedShiftIds: [] 
+      }),
       toggleMachineForCopy: (machineId) => set((state) => ({
         selectedMachineIdsForCopy: state.selectedMachineIdsForCopy.includes(machineId)
           ? state.selectedMachineIdsForCopy.filter(id => id !== machineId)
           : [...state.selectedMachineIdsForCopy, machineId]
       })),
-      copyDayToNext: (day) => {
-        let copiedCount = 0;
+      copyDayToNext: (day, daysCount = 1) => {
+        let totalCopiedCount = 0;
         set((state) => {
           // Parse the day string (e.g. '2026-03-04') into local year, month, day
           const [year, month, date] = day.split('-').map(Number);
           
           // Visual day starts at 02:00 local time
           const visualStart = new Date(year, month - 1, date, 2, 0, 0);
-          // Visual day ends at 02:00 local time the next day
           const visualEnd = new Date(year, month - 1, date + 1, 2, 0, 0);
 
-          // Convert to absolute minutes since Unix Epoch
           const dayStartMinute = Math.floor(visualStart.getTime() / 60000);
           const dayEndMinute = Math.floor(visualEnd.getTime() / 60000);
 
           let shiftsToCopy = [];
 
           if (state.selectedShiftIds.length > 0) {
-            // If specific shifts are selected, copy ONLY them (and ensure they belong to the day just in case, or maybe just copy them regardless? Let's copy them regardless of the day if they are selected, but the user clicked copy on a specific day. Actually, if they selected shifts, we just copy those selected shifts exactly +24h)
             shiftsToCopy = state.shifts.filter(s => state.selectedShiftIds.includes(s.id));
           } else if (state.selectedMachineIdsForCopy.length > 0) {
-            // If machines are selected, copy shifts from those machines for the day
             shiftsToCopy = state.shifts.filter(s => 
               state.selectedMachineIdsForCopy.includes(s.machineId) &&
               s.startMinuteAbsolute >= dayStartMinute && s.startMinuteAbsolute < dayEndMinute
             );
           } else {
-            // Copy all shifts for the day
             shiftsToCopy = state.shifts.filter(s => 
               s.startMinuteAbsolute >= dayStartMinute && s.startMinuteAbsolute < dayEndMinute
             );
           }
           
-          copiedCount = shiftsToCopy.length;
-          if (copiedCount === 0) {
+          if (shiftsToCopy.length === 0) {
             set({ isCopyMode: false, selectedMachineIdsForCopy: [] });
             return state;
           }
 
-          // Calculate the exact minute offset for 24 hours later
-          // We use Date objects to handle Daylight Saving Time transitions correctly
-          const newShifts = shiftsToCopy.map(shift => {
-            const originalStart = new Date(shift.startMinuteAbsolute * 60000);
-            const originalEnd = new Date(shift.endMinuteAbsolute * 60000);
-            
-            const newStart = new Date(originalStart.getFullYear(), originalStart.getMonth(), originalStart.getDate() + 1, originalStart.getHours(), originalStart.getMinutes());
-            const newEnd = new Date(originalEnd.getFullYear(), originalEnd.getMonth(), originalEnd.getDate() + 1, originalEnd.getHours(), originalEnd.getMinutes());
+          let allNewShifts: Shift[] = [];
+          
+          for (let i = 1; i <= daysCount; i++) {
+            const newShiftsForDay = shiftsToCopy.map(shift => {
+              const originalStart = new Date(shift.startMinuteAbsolute * 60000);
+              const originalEnd = new Date(shift.endMinuteAbsolute * 60000);
+              
+              const newStart = new Date(originalStart.getFullYear(), originalStart.getMonth(), originalStart.getDate() + i, originalStart.getHours(), originalStart.getMinutes());
+              const newEnd = new Date(originalEnd.getFullYear(), originalEnd.getMonth(), originalEnd.getDate() + i, originalEnd.getHours(), originalEnd.getMinutes());
 
-            return {
-              ...shift,
-              id: Math.random().toString(36).substr(2, 9),
-              startMinuteAbsolute: Math.floor(newStart.getTime() / 60000),
-              endMinuteAbsolute: Math.floor(newEnd.getTime() / 60000)
-            };
-          });
+              return {
+                ...shift,
+                id: Math.random().toString(36).substr(2, 9),
+                startMinuteAbsolute: Math.floor(newStart.getTime() / 60000),
+                endMinuteAbsolute: Math.floor(newEnd.getTime() / 60000)
+              };
+            });
+            allNewShifts = [...allNewShifts, ...newShiftsForDay];
+          }
+
+          totalCopiedCount = allNewShifts.length;
 
           const newState = { 
-            shifts: [...state.shifts, ...newShifts],
+            shifts: [...state.shifts, ...allNewShifts],
             isCopyMode: false,
             selectedMachineIdsForCopy: [],
             selectedShiftIds: []
           };
-          if (supabase) supabase.from('shifts').insert(newShifts).then(({ error }) => { if (error) console.error(error); });
+          if (supabase) supabase.from('shifts').insert(allNewShifts).then(({ error }) => { if (error) console.error(error); });
           return newState;
         });
-        return copiedCount > 0;
+        return totalCopiedCount > 0;
       },
       copySelectedShifts: (newStartMinuteAbsolute) => set((state) => {
         if (state.selectedShiftIds.length === 0) return state;
@@ -395,8 +420,8 @@ export const useScheduleStore = create<ScheduleState>()(
       },
     }),
     {
-      name: 'shift-planner-storage-v3', // Changed name to force fresh start with initial data
-      version: 3,
+      name: 'shift-planner-storage-v4', // Bumped version to force fresh start with new defaults
+      version: 4,
     }
   )
 );

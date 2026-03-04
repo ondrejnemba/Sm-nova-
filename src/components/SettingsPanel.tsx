@@ -2,7 +2,7 @@ import { useScheduleStore } from '../store/scheduleStore';
 import { X, Plus, Trash2, Edit2, Check, GripVertical } from 'lucide-react';
 import { generateId } from '../utils/id';
 import { useState } from 'react';
-import { Employee, MachineGroup, Machine } from '../domain/types';
+import { Employee, MachineGroup, Machine, EmployeeGroup } from '../domain/types';
 
 export const SettingsPanel = () => {
   const settingsOpen = useScheduleStore(state => state.settingsOpen);
@@ -13,6 +13,11 @@ export const SettingsPanel = () => {
   const updateEmployee = useScheduleStore(state => state.updateEmployee);
   const deleteEmployee = useScheduleStore(state => state.deleteEmployee);
   const reorderEmployees = useScheduleStore(state => state.reorderEmployees);
+
+  const employeeGroups = useScheduleStore(state => state.employeeGroups);
+  const addEmployeeGroup = useScheduleStore(state => state.addEmployeeGroup);
+  const updateEmployeeGroup = useScheduleStore(state => state.updateEmployeeGroup);
+  const deleteEmployeeGroup = useScheduleStore(state => state.deleteEmployeeGroup);
   
   const machineGroups = useScheduleStore(state => state.machineGroups);
   const addMachineGroup = useScheduleStore(state => state.addMachineGroup);
@@ -34,6 +39,7 @@ export const SettingsPanel = () => {
   const setViewGranularityHours = useScheduleStore(state => state.setViewGranularityHours);
 
   const [newEmpName, setNewEmpName] = useState('');
+  const [newEmployeeGroupName, setNewEmployeeGroupName] = useState('');
   const [newGroupName, setNewGroupName] = useState('');
   const [newMachineName, setNewMachineName] = useState('');
   const [newMachineGroupId, setNewMachineGroupId] = useState('');
@@ -43,6 +49,7 @@ export const SettingsPanel = () => {
   const [newMachineVirtualColumns, setNewMachineVirtualColumns] = useState(1);
 
   const [editingEmpId, setEditingEmpId] = useState<string | null>(null);
+  const [editingEmployeeGroupId, setEditingEmployeeGroupId] = useState<string | null>(null);
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingMachineId, setEditingMachineId] = useState<string | null>(null);
 
@@ -64,6 +71,15 @@ export const SettingsPanel = () => {
       allowedMachineIds: machines.map(m => m.id)
     });
     setNewEmpName('');
+  };
+
+  const handleAddEmployeeGroup = () => {
+    if (!newEmployeeGroupName) return;
+    addEmployeeGroup({
+      id: generateId(),
+      name: newEmployeeGroupName
+    });
+    setNewEmployeeGroupName('');
   };
 
   const handleAddGroup = () => {
@@ -105,20 +121,6 @@ export const SettingsPanel = () => {
             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Obecné</h3>
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between p-3 border-2 border-gray-100 rounded-md">
-                <span className="text-sm font-medium">Krok přichytávání (minuty)</span>
-                <select 
-                  value={snapGranularityMinutes}
-                  onChange={e => setSnapGranularityMinutes(Number(e.target.value))}
-                  className="border-2 border-gray-200 rounded-md px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
-                >
-                  <option value={15}>15 min</option>
-                  <option value={30}>30 min</option>
-                  <option value={60}>1 hodina</option>
-                  <option value={120}>2 hodiny</option>
-                  <option value={240}>4 hodiny</option>
-                </select>
-              </div>
-              <div className="flex items-center justify-between p-3 border-2 border-gray-100 rounded-md">
                 <span className="text-sm font-medium">Výchozí délka směny (h)</span>
                 <select 
                   value={defaultShiftHours}
@@ -148,6 +150,56 @@ export const SettingsPanel = () => {
                   <option value={12}>12 hodin</option>
                 </select>
               </div>
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Skupiny zaměstnanců</h3>
+            <div className="flex flex-col gap-2">
+              {employeeGroups.map(group => (
+                <div key={group.id} className="flex flex-col p-3 border-2 border-gray-100 rounded-md gap-2 bg-white">
+                  {editingEmployeeGroupId === group.id ? (
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="text" 
+                        value={group.name}
+                        onChange={e => updateEmployeeGroup(group.id, { name: e.target.value })}
+                        className="flex-1 border-2 border-gray-200 rounded-md px-2 py-1 text-sm"
+                      />
+                      <button onClick={() => setEditingEmployeeGroupId(null)} className="text-green-600 hover:bg-green-50 p-1.5 rounded-md">
+                        <Check className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{group.name}</span>
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => setEditingEmployeeGroupId(group.id)} className="text-gray-500 hover:bg-gray-100 p-1.5 rounded-md">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => deleteEmployeeGroup(group.id)} className="text-red-500 hover:bg-red-50 p-1.5 rounded-md">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2 mt-4 pt-4 border-t-2 border-gray-100">
+              <input 
+                type="text" 
+                value={newEmployeeGroupName}
+                onChange={e => setNewEmployeeGroupName(e.target.value)}
+                placeholder="Název nové skupiny" 
+                className="flex-1 border-2 border-gray-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              />
+              <button 
+                onClick={handleAddEmployeeGroup}
+                className="bg-gray-900 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800 flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" /> Přidat skupinu
+              </button>
             </div>
           </section>
 
@@ -188,6 +240,19 @@ export const SettingsPanel = () => {
                         </button>
                       </div>
                       <div className="flex items-center gap-4 text-sm mt-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-500">Skupina:</span>
+                          <select 
+                            value={emp.groupId || ''}
+                            onChange={e => updateEmployee(emp.id, { groupId: e.target.value || undefined })}
+                            className="border-2 border-gray-200 rounded-md px-2 py-1 text-sm"
+                          >
+                            <option value="">Bez skupiny</option>
+                            {employeeGroups.map(g => (
+                              <option key={g.id} value={g.id}>{g.name}</option>
+                            ))}
+                          </select>
+                        </div>
                         <div className="flex items-center gap-2">
                           <span className="text-gray-500">Týdenní limit (h):</span>
                           <input 
@@ -237,6 +302,11 @@ export const SettingsPanel = () => {
                         <div className="w-4 h-4 rounded-full" style={{ backgroundColor: emp.color }} />
                         <span className="text-sm font-medium">{emp.name}</span>
                         <span className="text-xs text-gray-400">({emp.weeklyLimitHours}h)</span>
+                        {emp.groupId && (
+                          <span className="text-[9px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-100 font-bold uppercase">
+                            {employeeGroups.find(g => g.id === emp.groupId)?.name}
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-1">
                         <button onClick={() => setEditingEmpId(emp.id)} className="text-gray-500 hover:bg-gray-100 p-1.5 rounded-md">
@@ -301,16 +371,27 @@ export const SettingsPanel = () => {
                   className={`flex items-center justify-between p-3 border-2 border-gray-100 rounded-md bg-white transition-all ${draggedGroupIndex === index ? 'opacity-50 scale-[0.98]' : ''}`}
                 >
                   {editingGroupId === group.id ? (
-                    <div className="flex items-center gap-2 flex-1">
-                      <input 
-                        type="text" 
-                        value={group.name}
-                        onChange={e => updateMachineGroup(group.id, { name: e.target.value })}
-                        className="flex-1 border-2 border-gray-200 rounded-md px-2 py-1 text-sm"
-                      />
-                      <button onClick={() => setEditingGroupId(null)} className="text-green-600 hover:bg-green-50 p-1.5 rounded-md">
-                        <Check className="w-4 h-4" />
-                      </button>
+                    <div className="flex flex-col gap-2 flex-1">
+                      <div className="flex items-center gap-2">
+                        <input 
+                          type="text" 
+                          value={group.name}
+                          onChange={e => updateMachineGroup(group.id, { name: e.target.value })}
+                          className="flex-1 border-2 border-gray-200 rounded-md px-2 py-1 text-sm"
+                        />
+                        <button onClick={() => setEditingGroupId(null)} className="text-green-600 hover:bg-green-50 p-1.5 rounded-md">
+                          <Check className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                        <input 
+                          type="checkbox"
+                          checked={!!group.highlight12h}
+                          onChange={e => updateMachineGroup(group.id, { highlight12h: e.target.checked })}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        Zvýraznit 12h směny v exportu (oranžově)
+                      </label>
                     </div>
                   ) : (
                     <>

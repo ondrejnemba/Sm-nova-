@@ -5,11 +5,18 @@ export interface Employee {
   weeklyLimitHours: number;
   maxShiftHours: number;
   allowedMachineIds: string[];
+  groupId?: string;
+}
+
+export interface EmployeeGroup {
+  id: string;
+  name: string;
 }
 
 export interface MachineGroup {
   id: string;
   name: string;
+  highlight12h?: boolean;
 }
 
 export interface Machine {
