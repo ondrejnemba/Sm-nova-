@@ -161,51 +161,50 @@ export const ExportDialog = () => {
           const groupMachines = machines.filter(m => m.groupId === groupId);
 
           return (
-            <div key={groupId} className={`p-10 bg-white ${pageIdx > 0 ? 'break-before-page' : ''}`} style={{ minHeight: '297mm', width: '210mm', pageBreakAfter: 'always', color: '#000' }}>
-              <header className="flex justify-between items-start border-b-8 border-black pb-6 mb-8">
+            <div key={groupId} className={`p-8 bg-white ${pageIdx > 0 ? 'break-before-page' : ''}`} style={{ minHeight: '297mm', width: '210mm', pageBreakAfter: 'always', color: '#000', fontFamily: 'Inter, sans-serif' }}>
+              <header className="flex justify-between items-end mb-8 border-b-2 border-gray-900 pb-4">
                 <div>
-                  <h1 className="text-3xl font-black text-black leading-none uppercase tracking-tighter mb-2">Týdenní rozpis směn</h1>
-                  <h2 className="text-2xl font-bold text-black uppercase tracking-widest border-l-4 border-black pl-4">{group.name}</h2>
+                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-1">Týdenní rozpis směn</div>
+                  <h1 className="text-2xl font-black text-gray-900 uppercase tracking-tight">{group.name}</h1>
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] font-bold text-gray-500 uppercase leading-none mb-2">Období / Kalendářní týden</p>
-                  <p className="text-xl font-black text-black">
+                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-1">
+                    {format(exportDays[0], 'w')}. týden ({format(exportDays[0], 'yyyy')})
+                  </div>
+                  <div className="text-lg font-bold text-gray-900">
                     {format(exportDays[0], 'd. M.')} — {format(exportDays[6], 'd. M. yyyy')}
-                  </p>
-                  <div className="mt-1 inline-block bg-black text-white px-2 py-1 text-[10px] font-black uppercase tracking-widest">
-                    {format(exportDays[0], 'w')}. Týden
                   </div>
                 </div>
               </header>
 
-              <div className="w-full">
-                <table className="w-full border-collapse border-4 border-black table-fixed">
+              <div className="w-full overflow-hidden border border-gray-300 rounded-lg">
+                <table className="w-full border-collapse table-fixed">
                   <thead>
-                    <tr>
-                      <th className="border-4 border-black p-3 bg-gray-100 text-left w-[20%] text-[11px] font-black uppercase tracking-tight">Pracoviště / Stroj</th>
-                      {exportDays.map(day => (
-                        <th key={day.toISOString()} className="border-4 border-black p-2 bg-gray-50 text-center text-[10px] font-black uppercase">
-                          <div className="text-gray-500 mb-1">{format(day, 'EEEE', { locale: cs })}</div>
-                          <div className="text-black text-sm bg-white border border-black/10 rounded py-0.5">{format(day, 'd. M.')}</div>
+                    <tr className="bg-gray-50 border-b border-gray-300">
+                      <th className="w-24 p-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider border-r border-gray-200">Den</th>
+                      {groupMachines.map(machine => (
+                        <th key={machine.id} className="p-2 text-[10px] font-bold text-gray-900 uppercase tracking-wider border-r border-gray-200 last:border-r-0">
+                          {machine.name}
                         </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {groupMachines.map(machine => (
-                      <tr key={machine.id}>
-                        <td className="border-4 border-black p-3 font-black text-[11px] bg-gray-50 align-middle leading-tight">
-                          {machine.name}
+                    {exportDays.map((day, dayIdx) => (
+                      <tr key={day.toISOString()} className={cn("border-b border-gray-200 last:border-b-0", dayIdx % 2 === 1 ? "bg-gray-50/30" : "bg-white")}>
+                        <td className="p-2 border-r border-gray-200 align-top">
+                          <div className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">{format(day, 'EEEE', { locale: cs })}</div>
+                          <div className="text-sm font-black text-gray-900">{format(day, 'd. M.')}</div>
                         </td>
-                        {exportDays.map(day => {
+                        {groupMachines.map(machine => {
                           const dayShifts = shifts.filter(s => 
                             s.machineId === machine.id && 
                             isSameDay(new Date(s.startMinuteAbsolute * 60000), day)
                           ).sort((a, b) => a.startMinuteAbsolute - b.startMinuteAbsolute);
 
                           return (
-                            <td key={day.toISOString()} className="border-4 border-black p-1.5 align-top min-h-[80px]">
-                              <div className="flex flex-col gap-1.5">
+                            <td key={machine.id} className="p-1 border-r border-gray-200 last:border-r-0 align-top min-h-[60px]">
+                              <div className="flex flex-col gap-1">
                                 {dayShifts.map(shift => {
                                   const shiftEmployees = shift.employeeIds
                                     .map(id => employees.find(e => e.id === id))
@@ -218,30 +217,25 @@ export const ExportDialog = () => {
                                     <div 
                                       key={shift.id} 
                                       className={cn(
-                                        "text-[9px] leading-tight border-2 border-black p-1.5",
-                                        (is12h && group.highlight12h) ? "bg-orange-100" : "bg-white"
+                                        "p-1.5 rounded border border-gray-200",
+                                        (is12h && group.highlight12h) ? "bg-amber-50 border-amber-200" : "bg-white"
                                       )}
                                     >
-                                      <div className="font-black text-black mb-1 border-b border-black pb-1 flex justify-between items-center">
+                                      <div className="flex justify-between items-center mb-1 text-[9px] font-bold text-gray-500 border-b border-gray-100 pb-0.5">
                                         <span>{format(new Date(shift.startMinuteAbsolute * 60000), 'HH:mm')}</span>
-                                        <span className="text-[7px] opacity-30">—</span>
                                         <span>{format(new Date(shift.endMinuteAbsolute * 60000), 'HH:mm')}</span>
                                       </div>
-                                      <div className="font-bold text-black space-y-1">
+                                      <div className="space-y-0.5">
                                         {shiftEmployees.map(e => (
-                                          <div key={e?.id} className="flex items-center gap-1.5">
-                                            <span className="truncate uppercase tracking-tighter">{e?.name}</span>
+                                          <div key={e?.id} className="flex items-center gap-1">
+                                            <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: e?.color }} />
+                                            <span className="text-[9px] font-bold text-gray-900 truncate uppercase tracking-tighter">{e?.name}</span>
                                           </div>
                                         ))}
                                       </div>
                                     </div>
                                   );
                                 })}
-                                {dayShifts.length === 0 && (
-                                  <div className="h-16 flex items-center justify-center opacity-5">
-                                    <div className="w-full h-[1px] bg-black rotate-45" />
-                                  </div>
-                                )}
                               </div>
                             </td>
                           );
@@ -252,38 +246,33 @@ export const ExportDialog = () => {
                 </table>
               </div>
 
-              <div className="mt-12 grid grid-cols-2 gap-12">
-                <div className="border-4 border-black p-6">
-                  <h3 className="text-[11px] font-black uppercase text-black mb-6 border-b-2 border-black pb-2">Důležité poznámky k provozu</h3>
-                  <div className="space-y-6">
-                    <div className="h-[1px] bg-gray-200" />
-                    <div className="h-[1px] bg-gray-200" />
-                    <div className="h-[1px] bg-gray-200" />
-                    <div className="h-[1px] bg-gray-200" />
+              <div className="mt-8 grid grid-cols-2 gap-8">
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-3">Poznámky</h3>
+                  <div className="space-y-3">
+                    <div className="h-px bg-gray-200" />
+                    <div className="h-px bg-gray-200" />
+                    <div className="h-px bg-gray-200" />
                   </div>
                 </div>
-                <div className="flex flex-col justify-between py-4">
-                  <div className="space-y-12">
-                    <div className="flex justify-between items-end">
-                      <div className="text-center">
-                        <div className="w-48 border-b-2 border-black mb-2" />
-                        <p className="text-[10px] font-black uppercase tracking-widest">Sestavil (Mistr)</p>
-                      </div>
-                      <div className="text-center">
-                        <div className="w-48 border-b-2 border-black mb-2" />
-                        <p className="text-[10px] font-black uppercase tracking-widest">Schválil (Vedoucí)</p>
-                      </div>
+                <div className="flex flex-col justify-end gap-6 pb-2">
+                  <div className="flex justify-between items-end px-4">
+                    <div className="text-center">
+                      <div className="w-32 border-b border-gray-900 mb-1" />
+                      <p className="text-[8px] font-bold text-gray-500 uppercase tracking-widest">Mistr</p>
                     </div>
-                    <div className="pt-8">
-                      <div className="w-full border-2 border-black p-4 text-[9px] font-bold uppercase tracking-tight text-gray-400 italic">
-                        Tento dokument je závazným rozpisem směn pro uvedené období. Jakékoliv změny musí být schváleny nadřízeným pracovníkem.
-                      </div>
+                    <div className="text-center">
+                      <div className="w-32 border-b border-gray-900 mb-1" />
+                      <p className="text-[8px] font-bold text-gray-500 uppercase tracking-widest">Schválil</p>
                     </div>
+                  </div>
+                  <div className="text-[8px] text-gray-400 italic text-center px-4">
+                    Tento dokument je závazným rozpisem směn. Změny podléhají schválení.
                   </div>
                 </div>
               </div>
 
-              <footer className="mt-auto pt-6 border-t-4 border-black flex justify-between text-[9px] font-black text-black uppercase tracking-[0.2em]">
+              <footer className="mt-auto pt-4 border-t border-gray-200 flex justify-between text-[8px] font-medium text-gray-400 uppercase tracking-widest">
                 <div>EMBA Směnovač • {format(new Date(), 'd. M. yyyy HH:mm')}</div>
                 <div>Strana {pageIdx + 1} / {selectedGroups.length}</div>
               </footer>

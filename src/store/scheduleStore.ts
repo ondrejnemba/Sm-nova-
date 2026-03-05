@@ -144,14 +144,24 @@ export const useScheduleStore = create<ScheduleState>()(
         return { employees: result };
       }),
 
-      addEmployeeGroup: (group) => set((state) => ({ employeeGroups: [...state.employeeGroups, group] })),
-      updateEmployeeGroup: (id, group) => set((state) => ({
-        employeeGroups: state.employeeGroups.map(g => g.id === id ? { ...g, ...group } : g)
-      })),
-      deleteEmployeeGroup: (id) => set((state) => ({
-        employeeGroups: state.employeeGroups.filter(g => g.id !== id),
-        employees: state.employees.map(e => e.groupId === id ? { ...e, groupId: undefined } : e)
-      })),
+      addEmployeeGroup: (group) => set((state) => {
+        const newState = { employeeGroups: [...state.employeeGroups, group] };
+        if (supabase) supabase.from('employee_groups').insert(group).then(({ error }) => { if (error) console.error(error); });
+        return newState;
+      }),
+      updateEmployeeGroup: (id, group) => set((state) => {
+        const newState = { employeeGroups: state.employeeGroups.map(g => g.id === id ? { ...g, ...group } : g) };
+        if (supabase) supabase.from('employee_groups').update(group).eq('id', id).then(({ error }) => { if (error) console.error(error); });
+        return newState;
+      }),
+      deleteEmployeeGroup: (id) => set((state) => {
+        const newState = {
+          employeeGroups: state.employeeGroups.filter(g => g.id !== id),
+          employees: state.employees.map(e => e.groupId === id ? { ...e, groupId: undefined } : e)
+        };
+        if (supabase) supabase.from('employee_groups').delete().eq('id', id).then(({ error }) => { if (error) console.error(error); });
+        return newState;
+      }),
       toggleEmployeeGroup: (groupId) => set((state) => ({
         collapsedEmployeeGroups: state.collapsedEmployeeGroups.includes(groupId)
           ? state.collapsedEmployeeGroups.filter(id => id !== groupId)
@@ -370,26 +380,29 @@ export const useScheduleStore = create<ScheduleState>()(
         if (!supabase) return;
         set({ isSyncing: true, lastSyncError: null });
         try {
-          const [empRes, groupRes, machRes, shiftRes] = await Promise.all([
+          const [empRes, groupRes, machRes, shiftRes, empGroupRes] = await Promise.all([
             supabase.from('employees').select('*'),
             supabase.from('machine_groups').select('*'),
             supabase.from('machines').select('*'),
-            supabase.from('shifts').select('*')
+            supabase.from('shifts').select('*'),
+            supabase.from('employee_groups').select('*')
           ]);
 
           if (empRes.error) throw empRes.error;
           if (groupRes.error) throw groupRes.error;
           if (machRes.error) throw machRes.error;
           if (shiftRes.error) throw shiftRes.error;
+          if (empGroupRes.error) throw empGroupRes.error;
 
           // Only update state if we actually got data from Supabase
           // (prevents overwriting local state with empty arrays if DB is fresh)
-          if (empRes.data.length > 0 || groupRes.data.length > 0) {
+          if (empRes.data.length > 0 || groupRes.data.length > 0 || empGroupRes.data.length > 0) {
             set({
               employees: empRes.data,
               machineGroups: groupRes.data,
               machines: machRes.data,
               shifts: shiftRes.data,
+              employeeGroups: empGroupRes.data,
               isSyncing: false
             });
           } else {
@@ -409,6 +422,10 @@ export const useScheduleStore = create<ScheduleState>()(
             }
             if (state.shifts.length > 0) {
               const { error } = await supabase.from('shifts').insert(state.shifts);
+              if (error) throw error;
+            }
+            if (state.employeeGroups.length > 0) {
+              const { error } = await supabase.from('employee_groups').insert(state.employeeGroups);
               if (error) throw error;
             }
             set({ isSyncing: false });

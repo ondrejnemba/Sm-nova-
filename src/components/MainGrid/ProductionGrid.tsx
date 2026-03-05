@@ -180,7 +180,14 @@ export const ProductionGrid = () => {
       if (dragState.type === 'create') {
         setDragState({ ...dragState, currentMinute: snappedMinute });
       } else if (dragState.type === 'move') {
-        if (hoveredMachineId) {
+        // Find machine and sub-column under pointer
+        const elementUnderPointer = document.elementFromPoint(e.clientX, e.clientY);
+        const machineCol = elementUnderPointer?.closest('[data-machine-id]');
+        
+        const currentMachineId = machineCol?.getAttribute('data-machine-id') || hoveredMachineId;
+        const currentSubColumnIndex = machineCol ? parseInt(machineCol.getAttribute('data-sub-column-index') || '0', 10) : hoveredSubColumnIndex;
+
+        if (currentMachineId) {
           const duration = dragState.shift.endMinuteAbsolute - dragState.shift.startMinuteAbsolute;
           const newStart = snappedMinute - dragState.startOffset;
           const snappedNewStart = snapMinute(newStart);
@@ -188,8 +195,8 @@ export const ProductionGrid = () => {
           // Collision avoidance logic
           const otherShifts = shifts.filter(s => 
             s.id !== dragState.shift.id && 
-            s.machineId === hoveredMachineId && 
-            s.subColumnIndex === hoveredSubColumnIndex
+            s.machineId === currentMachineId && 
+            s.subColumnIndex === currentSubColumnIndex
           );
 
           let finalStart = snappedNewStart;
@@ -217,8 +224,8 @@ export const ProductionGrid = () => {
           setDragState({
             ...dragState,
             preview: {
-              machineId: hoveredMachineId,
-              subColumnIndex: hoveredSubColumnIndex,
+              machineId: currentMachineId,
+              subColumnIndex: currentSubColumnIndex,
               start: finalStart,
               end: finalEnd
             }
@@ -810,6 +817,8 @@ const MachineColumn: React.FC<{
       {Array.from({ length: vCols }).map((_, colIdx) => (
         <div 
           key={colIdx}
+          data-machine-id={machine.id}
+          data-sub-column-index={colIdx}
           className={cn(
             "flex-1 h-full relative transition-colors",
             !dragState && "hover:bg-gray-50/50",
