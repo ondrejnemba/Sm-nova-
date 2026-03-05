@@ -392,17 +392,25 @@ export const useScheduleStore = create<ScheduleState>()(
           if (groupRes.error) throw groupRes.error;
           if (machRes.error) throw machRes.error;
           if (shiftRes.error) throw shiftRes.error;
-          if (empGroupRes.error) throw empGroupRes.error;
+          
+          let finalEmpGroups = [];
+          let employeeGroupsTableExists = true;
+          if (empGroupRes.error) {
+            console.warn("employee_groups table might not exist yet. Please run the SQL migration.", empGroupRes.error);
+            employeeGroupsTableExists = false;
+          } else {
+            finalEmpGroups = empGroupRes.data || [];
+          }
 
           // Only update state if we actually got data from Supabase
           // (prevents overwriting local state with empty arrays if DB is fresh)
-          if (empRes.data.length > 0 || groupRes.data.length > 0 || empGroupRes.data.length > 0) {
+          if (empRes.data.length > 0 || groupRes.data.length > 0 || finalEmpGroups.length > 0) {
             set({
               employees: empRes.data,
               machineGroups: groupRes.data,
               machines: machRes.data,
               shifts: shiftRes.data,
-              employeeGroups: empGroupRes.data,
+              employeeGroups: finalEmpGroups,
               isSyncing: false
             });
           } else {
@@ -424,7 +432,7 @@ export const useScheduleStore = create<ScheduleState>()(
               const { error } = await supabase.from('shifts').insert(state.shifts);
               if (error) throw error;
             }
-            if (state.employeeGroups.length > 0) {
+            if (state.employeeGroups.length > 0 && employeeGroupsTableExists) {
               const { error } = await supabase.from('employee_groups').insert(state.employeeGroups);
               if (error) throw error;
             }

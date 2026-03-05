@@ -1,3 +1,10 @@
+-- Smazání existujících tabulek (POZOR: smaže všechna data!)
+DROP TABLE IF EXISTS shifts CASCADE;
+DROP TABLE IF EXISTS machines CASCADE;
+DROP TABLE IF EXISTS machine_groups CASCADE;
+DROP TABLE IF EXISTS employees CASCADE;
+DROP TABLE IF EXISTS employee_groups CASCADE;
+
 -- Vytvoření tabulky pro skupiny zaměstnanců
 CREATE TABLE employee_groups (
   id TEXT PRIMARY KEY,
