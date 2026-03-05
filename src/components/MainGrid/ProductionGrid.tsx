@@ -10,9 +10,9 @@ import { format, differenceInCalendarDays, startOfDay, addDays, setHours, setMin
 
 type DragState = 
   | { type: 'create'; machineId: string; subColumnIndex: number; startMinute: number; currentMinute: number }
-  | { type: 'move'; shift: Shift; startOffset: number; isCopy?: boolean }
-  | { type: 'resize-start'; shift: Shift }
-  | { type: 'resize-end'; shift: Shift }
+  | { type: 'move'; shift: Shift; startOffset: number; isCopy?: boolean; preview?: { machineId: string; subColumnIndex: number; start: number; end: number } }
+  | { type: 'resize-start'; shift: Shift; previewStart?: number }
+  | { type: 'resize-end'; shift: Shift; previewEnd?: number }
   | null;
 
 export const ProductionGrid = () => {
@@ -201,7 +201,6 @@ export const ProductionGrid = () => {
             .sort((a, b) => a.startMinuteAbsolute - b.startMinuteAbsolute)[0];
           
           if (nextShift && nextShift.startMinuteAbsolute < finalEnd) {
-            // Crop the end of our shift
             finalEnd = nextShift.startMinuteAbsolute;
           }
 
@@ -211,27 +210,27 @@ export const ProductionGrid = () => {
             .sort((a, b) => b.endMinuteAbsolute - a.endMinuteAbsolute)[0];
           
           if (prevShift && prevShift.endMinuteAbsolute > finalStart) {
-            // Crop the start of our shift
             finalStart = prevShift.endMinuteAbsolute;
           }
 
-          // Ensure minimum duration of 15 minutes if cropped, or don't move if completely blocked
-          if (finalEnd - finalStart >= 15) {
-            updateShift(dragState.shift.id, {
+          // Update preview instead of store
+          setDragState({
+            ...dragState,
+            preview: {
               machineId: hoveredMachineId,
               subColumnIndex: hoveredSubColumnIndex,
-              startMinuteAbsolute: finalStart,
-              endMinuteAbsolute: finalEnd
-            });
-          }
+              start: finalStart,
+              end: finalEnd
+            }
+          });
         }
       } else if (dragState.type === 'resize-start') {
         if (snappedMinute < dragState.shift.endMinuteAbsolute) {
-          updateShift(dragState.shift.id, { startMinuteAbsolute: snappedMinute });
+          setDragState({ ...dragState, previewStart: snappedMinute });
         }
       } else if (dragState.type === 'resize-end') {
         if (snappedMinute > dragState.shift.startMinuteAbsolute) {
-          updateShift(dragState.shift.id, { endMinuteAbsolute: snappedMinute });
+          setDragState({ ...dragState, previewEnd: snappedMinute });
         }
       }
     };
@@ -251,19 +250,38 @@ export const ProductionGrid = () => {
             endMinuteAbsolute: end
           });
         }
-      } else if (dragState?.type === 'move' && dragState.isCopy) {
-        // Validate employees after copying
-        const shift = useScheduleStore.getState().shifts.find(s => s.id === dragState.shift.id);
-        if (shift) {
-          const validEmployeeIds = shift.employeeIds.filter(empId => {
-            const emp = employees.find(e => e.id === empId);
-            if (!emp) return false;
-            const issues = evaluateEmployeeForShift(emp, shift, useScheduleStore.getState().shifts, machines);
-            return !issues.some(i => i.isHardBlock);
+      } else if (dragState?.type === 'move') {
+        if (dragState.preview && (dragState.preview.end - dragState.preview.start >= 15)) {
+          updateShift(dragState.shift.id, {
+            machineId: dragState.preview.machineId,
+            subColumnIndex: dragState.preview.subColumnIndex,
+            startMinuteAbsolute: dragState.preview.start,
+            endMinuteAbsolute: dragState.preview.end
           });
-          if (validEmployeeIds.length !== shift.employeeIds.length) {
-            updateShift(shift.id, { employeeIds: validEmployeeIds });
+        }
+        
+        if (dragState.isCopy) {
+          // Validate employees after copying
+          const shift = useScheduleStore.getState().shifts.find(s => s.id === dragState.shift.id);
+          if (shift) {
+            const validEmployeeIds = shift.employeeIds.filter(empId => {
+              const emp = employees.find(e => e.id === empId);
+              if (!emp) return false;
+              const issues = evaluateEmployeeForShift(emp, shift, useScheduleStore.getState().shifts, machines);
+              return !issues.some(i => i.isHardBlock);
+            });
+            if (validEmployeeIds.length !== shift.employeeIds.length) {
+              updateShift(shift.id, { employeeIds: validEmployeeIds });
+            }
           }
+        }
+      } else if (dragState?.type === 'resize-start') {
+        if (dragState.previewStart !== undefined) {
+          updateShift(dragState.shift.id, { startMinuteAbsolute: dragState.previewStart });
+        }
+      } else if (dragState?.type === 'resize-end') {
+        if (dragState.previewEnd !== undefined) {
+          updateShift(dragState.shift.id, { endMinuteAbsolute: dragState.previewEnd });
         }
       }
       setDragState(null);
@@ -793,7 +811,8 @@ const MachineColumn: React.FC<{
         <div 
           key={colIdx}
           className={cn(
-            "flex-1 h-full relative hover:bg-gray-50/50 transition-colors",
+            "flex-1 h-full relative transition-colors",
+            !dragState && "hover:bg-gray-50/50",
             colIdx > 0 && "border-l border-gray-100 border-dashed"
           )}
           onPointerDown={(e) => handleColumnPointerDown(e, colIdx)}
@@ -848,24 +867,24 @@ const MachineColumn: React.FC<{
         }
 
         return (
-          <div
-            key={shift.id}
-            className={cn(
-              "absolute rounded-md border-2 overflow-hidden flex flex-col transition-opacity group select-none",
-              ringClass,
-              isFaded ? "opacity-30" : "opacity-100",
-              shiftEmployees.length === 0 && !hasHardBlock && !hasSoftBlock && !isShiftSelected ? "border-dashed" : "",
-              isUnderOccupied && "border-r-4 border-r-orange-400"
-            )}
-            style={{
-              top: `${top}px`,
-              height: `${height}px`,
-              left: `calc(${leftPct}% + 2px)`,
-              width: `calc(${widthPct}% - 4px)`,
-              backgroundColor: bgColor,
-              borderColor: borderColor,
-              cursor: dragState ? 'grabbing' : 'grab'
-            }}
+          <React.Fragment key={shift.id}>
+            <div
+              className={cn(
+                "absolute rounded-md border-2 overflow-hidden flex flex-col transition-opacity group select-none",
+                ringClass,
+                (isFaded || (dragState?.type === 'move' && dragState.shift.id === shift.id)) ? "opacity-0" : "opacity-100",
+                shiftEmployees.length === 0 && !hasHardBlock && !hasSoftBlock && !isShiftSelected ? "border-dashed" : "",
+                isUnderOccupied && "border-r-4 border-r-orange-400"
+              )}
+              style={{
+                top: `${top}px`,
+                height: `${height}px`,
+                left: `calc(${leftPct}% + 2px)`,
+                width: `calc(${widthPct}% - 4px)`,
+                backgroundColor: bgColor,
+                borderColor: borderColor,
+                cursor: dragState ? 'grabbing' : 'grab'
+              }}
             onPointerDown={(e) => {
               e.stopPropagation();
               
@@ -982,6 +1001,49 @@ const MachineColumn: React.FC<{
               }}
             />
           </div>
+
+          {/* Move Preview */}
+          {dragState?.type === 'move' && dragState.shift.id === shift.id && dragState.preview && dragState.preview.machineId === machine.id && dragState.preview.subColumnIndex === colIdx && (
+            <div 
+              className="absolute rounded-md border-2 border-blue-500 bg-blue-500/10 pointer-events-none z-40 flex flex-col p-1.5"
+              style={{
+                top: `${getTopFromAbsolute(dragState.preview.start)}px`,
+                height: `${(dragState.preview.end - dragState.preview.start) * pxPerMinute}px`,
+                left: `calc(${leftPct}% + 2px)`,
+                width: `calc(${widthPct}% - 4px)`,
+              }}
+            >
+              <div className="text-[10px] font-black text-blue-700 uppercase tracking-tighter">Přesunout sem</div>
+              <div className="text-[9px] text-blue-600 font-bold">
+                {formatTime(dragState.preview.start)} - {formatTime(dragState.preview.end)}
+              </div>
+            </div>
+          )}
+
+          {/* Resize Previews */}
+          {dragState?.type === 'resize-start' && dragState.shift.id === shift.id && dragState.previewStart !== undefined && (
+            <div 
+              className="absolute rounded-md border-2 border-blue-500 bg-blue-500/10 pointer-events-none z-40"
+              style={{
+                top: `${getTopFromAbsolute(dragState.previewStart)}px`,
+                height: `${(shift.endMinuteAbsolute - dragState.previewStart) * pxPerMinute}px`,
+                left: `calc(${leftPct}% + 2px)`,
+                width: `calc(${widthPct}% - 4px)`,
+              }}
+            />
+          )}
+          {dragState?.type === 'resize-end' && dragState.shift.id === shift.id && dragState.previewEnd !== undefined && (
+            <div 
+              className="absolute rounded-md border-2 border-blue-500 bg-blue-500/10 pointer-events-none z-40"
+              style={{
+                top: `${getTopFromAbsolute(shift.startMinuteAbsolute)}px`,
+                height: `${(dragState.previewEnd - shift.startMinuteAbsolute) * pxPerMinute}px`,
+                left: `calc(${leftPct}% + 2px)`,
+                width: `calc(${widthPct}% - 4px)`,
+              }}
+            />
+          )}
+          </React.Fragment>
         );
       })}
 
