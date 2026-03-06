@@ -56,13 +56,11 @@ export const SettingsPanel = () => {
 
   // Drag and Drop States
   const [draggedEmpIndex, setDraggedEmpIndex] = useState<number | null>(null);
+  const [draggedEmployeeGroupIndex, setDraggedEmployeeGroupIndex] = useState<number | null>(null);
   const [draggedGroupIndex, setDraggedGroupIndex] = useState<number | null>(null);
   const [draggedMachineIndex, setDraggedMachineIndex] = useState<number | null>(null);
 
   if (!settingsOpen) return null;
-
-  const [draggedEmployeeGroupId, setDraggedEmployeeGroupId] = useState<string | null>(null);
-  const [dragOverEmployeeGroupId, setDragOverEmployeeGroupId] = useState<string | null>(null);
 
   const handleAddEmployee = () => {
     if (!newEmpName) return;
@@ -163,35 +161,16 @@ export const SettingsPanel = () => {
               {employeeGroups.map((group, index) => (
                 <div 
                   key={group.id} 
-                  className={`flex flex-col p-3 border rounded-md gap-2 bg-white transition-colors ${
-                    dragOverEmployeeGroupId === group.id ? 'border-emerald-500 bg-emerald-50' : 'border-gray-100'
-                  } ${draggedEmployeeGroupId === group.id ? 'opacity-50' : ''}`}
                   draggable
-                  onDragStart={(e) => {
-                    e.dataTransfer.effectAllowed = 'move';
-                    setDraggedEmployeeGroupId(group.id);
-                  }}
+                  onDragStart={() => setDraggedEmployeeGroupIndex(index)}
                   onDragOver={(e) => {
                     e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
-                    if (draggedEmployeeGroupId !== group.id) {
-                      setDragOverEmployeeGroupId(group.id);
-                    }
+                    if (draggedEmployeeGroupIndex === null || draggedEmployeeGroupIndex === index) return;
+                    reorderEmployeeGroups(draggedEmployeeGroupIndex, index);
+                    setDraggedEmployeeGroupIndex(index);
                   }}
-                  onDragLeave={() => setDragOverEmployeeGroupId(null)}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    setDragOverEmployeeGroupId(null);
-                    if (draggedEmployeeGroupId && draggedEmployeeGroupId !== group.id) {
-                      const draggedIndex = employeeGroups.findIndex(g => g.id === draggedEmployeeGroupId);
-                      reorderEmployeeGroups(draggedIndex, index);
-                    }
-                    setDraggedEmployeeGroupId(null);
-                  }}
-                  onDragEnd={() => {
-                    setDraggedEmployeeGroupId(null);
-                    setDragOverEmployeeGroupId(null);
-                  }}
+                  onDragEnd={() => setDraggedEmployeeGroupIndex(null)}
+                  className={`flex flex-col p-3 border border-gray-100 rounded-md gap-2 bg-white transition-all ${draggedEmployeeGroupIndex === index ? 'opacity-50 scale-[0.98]' : ''}`}
                 >
                   {editingEmployeeGroupId === group.id ? (
                     <div className="flex items-center gap-2">
