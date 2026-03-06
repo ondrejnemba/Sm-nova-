@@ -40,7 +40,7 @@ export const EmployeeRibbon = () => {
   const groupIds = [...employeeGroups.map(g => g.id), 'none'].filter(id => groupedEmployees[id]);
 
   // Calculate history for selected employee
-  const historyDays = [1, 2, 3].map(d => subDays(parseISO(selectedDay), d));
+  const historyDays = [3, 2, 1].map(d => subDays(parseISO(selectedDay), d));
   const employeeHistory = selectedEmployeeId ? historyDays.map(date => {
     const dateStr = format(date, 'yyyy-MM-dd');
     const dayShifts = shifts.filter(s => {
@@ -153,6 +153,11 @@ export const EmployeeRibbon = () => {
     const hasHardBlock = empIssues.some(i => i.isHardBlock);
     const hasSoftBlock = empIssues.some(i => !i.isHardBlock);
 
+    const isAssignedToday = empShifts.some(s => {
+      const sDate = new Date(s.startMinuteAbsolute * 60000);
+      return format(sDate, 'yyyy-MM-dd') === selectedDay;
+    });
+
     return (
       <React.Fragment key={emp.id}>
         <button
@@ -178,6 +183,13 @@ export const EmployeeRibbon = () => {
               {currentWeeklyHours}h / {emp.weeklyLimitHours}h
             </div>
           </div>
+          <div 
+            className={cn(
+              "w-2 h-2 rounded-full shrink-0 ml-1",
+              isAssignedToday ? "bg-emerald-500" : "bg-red-500"
+            )}
+            title={isAssignedToday ? "Dnes má směnu" : "Dnes nemá směnu"}
+          />
         </button>
 
         {/* History Panel as cards next to selected employee */}

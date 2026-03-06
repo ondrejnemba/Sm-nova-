@@ -16,7 +16,7 @@ export const ExportDialog = () => {
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedGroups, setSelectedGroups] = useState<string[]>(machineGroups.map(g => g.id));
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
-  const [scale, setScale] = useState(100);
+  const [scale, setScale] = useState(90);
 
   if (!isOpen) return null;
 
@@ -220,8 +220,8 @@ export const ExportDialog = () => {
               key={groupId} 
               className={`p-8 bg-white ${pageIdx > 0 ? 'break-before-page' : ''}`} 
               style={{ 
-                minHeight: pageHeight, 
-                width: pageWidth, 
+                minHeight: '100vh', 
+                width: '100%', 
                 pageBreakAfter: 'always', 
                 color: '#000', 
                 fontFamily: 'Inter, sans-serif',

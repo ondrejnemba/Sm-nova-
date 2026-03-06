@@ -306,6 +306,21 @@ export const ProductionGrid = () => {
     };
   }, [dragState, hoveredMachineId, hoveredSubColumnIndex, selectedEmployeeId, snapGranularityMinutes, gridStartDay, employees, machines, defaultShiftHours]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        // Only delete if we have selected shifts and we are not typing in an input
+        if (selectedShiftIds.length > 0 && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
+          selectedShiftIds.forEach(id => deleteShift(id));
+          useScheduleStore.getState().clearShiftSelection();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedShiftIds, deleteShift]);
+
   return (
     <div className="flex-1 overflow-auto bg-white relative flex flex-col no-print" ref={scrollContainerRef} onScroll={handleScroll}>
       {/* Header Row */}
@@ -604,6 +619,7 @@ export const ProductionGrid = () => {
                           defaultShiftHours={defaultShiftHours}
                           pxPerMinute={pxPerMinute}
                           addShift={addShift}
+                          updateShift={updateShift}
                           openPicker={(e, id) => {
                             e.stopPropagation();
                             const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -758,6 +774,7 @@ const MachineColumn: React.FC<{
   defaultShiftHours: number;
   pxPerMinute: number;
   addShift: (shift: Shift) => void;
+  updateShift: (id: string, updates: Partial<Shift>) => void;
   openPicker: (e: React.MouseEvent, id: string) => void;
 }> = ({ 
   machine, 
@@ -780,6 +797,7 @@ const MachineColumn: React.FC<{
   defaultShiftHours,
   pxPerMinute,
   addShift,
+  updateShift,
   openPicker
 }) => {
   const deleteShift = useScheduleStore(state => state.deleteShift);
@@ -817,15 +835,47 @@ const MachineColumn: React.FC<{
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top;
     const rawMinute = getMinuteFromY(y);
-    const snappedMinute = snapMinute(rawMinute);
+    
+    // Convert absolute minute to local Date
+    const date = new Date(rawMinute * 60000);
+    
+    // Get local hours and minutes
+    const localHours = date.getHours();
+    const localMinutes = date.getMinutes();
+    const totalLocalMinutes = localHours * 60 + localMinutes;
+    
+    // Calculate 4h block (02-06, 06-10, etc.)
+    // 2:00 is 120 minutes
+    const blockMinutes = 4 * 60;
+    const offsetMinutes = 2 * 60;
+    
+    // Shift local minutes so that 02:00 becomes 0
+    let shiftedMinutes = totalLocalMinutes - offsetMinutes;
+    let dayOffset = 0;
+    if (shiftedMinutes < 0) {
+      shiftedMinutes += 24 * 60;
+      dayOffset = -1;
+    }
+    
+    // Snap to block start
+    const blockStartShifted = Math.floor(shiftedMinutes / blockMinutes) * blockMinutes;
+    const blockStartLocal = blockStartShifted + offsetMinutes;
+    
+    // Construct the start Date
+    const blockStartDate = new Date(date);
+    blockStartDate.setDate(blockStartDate.getDate() + dayOffset);
+    blockStartDate.setHours(Math.floor(blockStartLocal / 60), blockStartLocal % 60, 0, 0);
+    
+    const blockStartAbsolute = Math.floor(blockStartDate.getTime() / 60000);
+    const blockEndAbsolute = blockStartAbsolute + blockMinutes;
     
     addShift({
       id: generateId(),
       machineId: machine.id,
       subColumnIndex: colIdx,
       employeeIds: selectedEmployeeId ? [selectedEmployeeId] : [],
-      startMinuteAbsolute: snappedMinute,
-      endMinuteAbsolute: snappedMinute + defaultShiftHours * 60
+      startMinuteAbsolute: blockStartAbsolute,
+      endMinuteAbsolute: blockEndAbsolute
     });
   };
 
@@ -869,7 +919,7 @@ const MachineColumn: React.FC<{
         const hasHardBlock = shiftIssues.some(i => i.isHardBlock);
         const hasSoftBlock = shiftIssues.some(i => !i.isHardBlock);
 
-        const isUnderOccupied = shift.employeeIds.length < machine.capacity;
+        const isUnderOccupied = shift.employeeIds.length < (machine.idealCapacity || machine.minCapacity || 1);
         const missingSlots = machine.capacity - shift.employeeIds.length;
 
         let borderColor = '#e5e7eb'; // gray-200
@@ -946,6 +996,16 @@ const MachineColumn: React.FC<{
                 setDragState({ type: 'move', shift, startOffset: rawMinute - shift.startMinuteAbsolute });
               }
             }}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              if (selectedEmployeeId) {
+                if (shift.employeeIds.includes(selectedEmployeeId)) {
+                  updateShift(shift.id, { employeeIds: shift.employeeIds.filter(id => id !== selectedEmployeeId) });
+                } else {
+                  updateShift(shift.id, { employeeIds: [...shift.employeeIds, selectedEmployeeId] });
+                }
+              }
+            }}
           >
             {/* Top Resize Handle */}
             <div 
@@ -965,10 +1025,26 @@ const MachineColumn: React.FC<{
                     {shiftEmployees.length}/{machine.idealCapacity || machine.minCapacity || 1}
                   </div>
                 </div>
+                <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-1">
+                  <button 
+                    onClick={(e) => openPicker(e, shift.id)}
+                    className="flex justify-center items-center text-emerald-600 hover:bg-emerald-100 bg-emerald-50 px-1.5 py-0.5 rounded transition-colors"
+                    title="Přidat zaměstnance"
+                  >
+                    <UserPlus className="w-3 h-3" />
+                  </button>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); deleteShift(shift.id); }}
+                    className="flex justify-center items-center text-red-600 hover:bg-red-100 bg-red-50 px-1 py-0.5 rounded transition-colors"
+                    title="Smazat směnu"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
               
               {/* Employee List */}
-              <div className="flex flex-col gap-0.5 mt-1 overflow-hidden flex-1">
+              <div className="flex flex-col gap-0.5 mt-1 overflow-hidden flex-1 pointer-events-auto">
                 {shiftEmployees.map(emp => {
                   const empIssues = shiftIssues.filter(i => i.employeeId === emp.id);
                   const empHasHardBlock = empIssues.some(i => i.isHardBlock);
@@ -976,12 +1052,19 @@ const MachineColumn: React.FC<{
                   
                   return (
                     <div key={emp.id} className={cn(
-                      "flex items-center gap-1 text-[10px] truncate rounded px-0.5",
-                      empHasHardBlock ? "bg-red-100 text-red-700 font-bold" : 
-                      empHasSoftBlock ? "bg-orange-100 text-orange-700 font-bold" : ""
-                    )}>
+                      "flex items-center gap-1.5 text-[10px] sm:text-xs truncate rounded px-1 py-0.5 w-full bg-white/50 border border-black/5 hover:bg-white transition-colors cursor-pointer",
+                      empHasHardBlock ? "bg-red-100 text-red-700 font-bold border-red-200" : 
+                      empHasSoftBlock ? "bg-orange-100 text-orange-700 font-bold border-orange-200" : ""
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateShift(shift.id, { employeeIds: shift.employeeIds.filter(id => id !== emp.id) });
+                    }}
+                    title="Kliknutím odeberete zaměstnance ze směny"
+                    >
                       <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: emp.color }} />
-                      <span className="truncate font-medium text-gray-900">{emp.name}</span>
+                      <span className="truncate font-medium text-gray-900 flex-1">{emp.name}</span>
+                      <X className="w-3 h-3 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all shrink-0" />
                     </div>
                   );
                 })}
@@ -1001,20 +1084,6 @@ const MachineColumn: React.FC<{
               <div className="mt-auto pointer-events-auto border-t border-black/5 pt-0.5 flex flex-col gap-1">
                 <div className="text-[10px] text-gray-600 truncate font-medium">
                   {formatTime(shift.startMinuteAbsolute)} - {formatTime(shift.endMinuteAbsolute)}
-                </div>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-between">
-                  <button 
-                    onClick={(e) => openPicker(e, shift.id)}
-                    className="flex-1 flex justify-center items-center text-emerald-600 hover:bg-emerald-100 bg-emerald-50 p-1 rounded transition-colors"
-                  >
-                    <UserPlus className="w-3 h-3 sm:w-4 sm:h-4" />
-                  </button>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); deleteShift(shift.id); }}
-                    className="flex-1 flex justify-center items-center text-red-600 hover:bg-red-100 bg-red-50 p-1 rounded transition-colors"
-                  >
-                    <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                  </button>
                 </div>
               </div>
             </div>
