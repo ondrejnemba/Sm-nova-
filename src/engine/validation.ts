@@ -69,6 +69,7 @@ export const validate = (shifts: Shift[], employees: Employee[], machines: Machi
           type: 'error',
           message: `Překročena maximální délka spojené směny (${employee?.maxShiftHours || 12}h)`,
           shiftId: current.shiftIds[0],
+          shiftIds: current.shiftIds,
           employeeId,
           isHardBlock: true
         });
@@ -86,6 +87,7 @@ export const validate = (shifts: Shift[], employees: Employee[], machines: Machi
             type: 'warning',
             message: `Porušení 11h nepřetržitého odpočinku (odpočinek byl jen ${Math.round(rest/60)}h)`,
             shiftId: next.shiftIds[0],
+            shiftIds: [...current.shiftIds, ...next.shiftIds],
             employeeId,
             isHardBlock: false
           });
@@ -102,6 +104,7 @@ export const validate = (shifts: Shift[], employees: Employee[], machines: Machi
             type: 'warning',
             message: 'Porušení 35h nepřetržitého odpočinku v týdnu',
             employeeId,
+            shiftIds: blocks.flatMap(b => b.shiftIds),
             isHardBlock: false
          });
       }
@@ -114,6 +117,7 @@ export const validate = (shifts: Shift[], employees: Employee[], machines: Machi
         type: 'warning',
         message: `Překročen týdenní limit (${Math.round(weeklyMinutes/60)}h / ${employeeForWeekly.weeklyLimitHours}h)`,
         employeeId,
+        shiftIds: blocks.flatMap(b => b.shiftIds),
         isHardBlock: false
       });
     }
@@ -130,6 +134,7 @@ export const validate = (shifts: Shift[], employees: Employee[], machines: Machi
         type: 'warning',
         message: `Nízké obsazení (min. ${machine.minCapacity} zam.)`,
         shiftId: shift.id,
+        shiftIds: [shift.id],
         isHardBlock: false
       });
     }
@@ -140,6 +145,7 @@ export const validate = (shifts: Shift[], employees: Employee[], machines: Machi
         type: 'error',
         message: `Překročena kapacita stroje (${machine.capacity} zam.)`,
         shiftId: shift.id,
+        shiftIds: [shift.id],
         isHardBlock: true
       });
     }
@@ -173,6 +179,7 @@ export const validate = (shifts: Shift[], employees: Employee[], machines: Machi
             type: 'error',
             message: `Kolize bloků směn na stroji (${machine.name})`,
             shiftId: p.shiftId,
+            shiftIds: [p.shiftId],
             isHardBlock: true
           });
         }
@@ -191,6 +198,7 @@ export const validate = (shifts: Shift[], employees: Employee[], machines: Machi
           type: 'error',
           message: `Zaměstnanec nemá oprávnění pro tento stroj`,
           shiftId: shift.id,
+          shiftIds: [shift.id],
           employeeId: employee.id,
           isHardBlock: true
         });
@@ -208,5 +216,8 @@ export const evaluateEmployeeForShift = (employee: Employee, shift: Shift, allSh
       : s
   );
   const issues = validate(hypotheticalShifts, [employee], machines);
-  return issues.filter(i => i.employeeId === employee.id && (i.shiftId === shift.id || i.shiftId === undefined));
+  return issues.filter(i => 
+    i.employeeId === employee.id && 
+    (i.shiftId === shift.id || i.shiftId === undefined || (i.shiftIds && i.shiftIds.includes(shift.id)))
+  );
 };

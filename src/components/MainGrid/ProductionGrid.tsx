@@ -647,70 +647,88 @@ export const ProductionGrid = () => {
                 Vyprázdnit směnu
               </button>
               
-              {employees
-                .filter(emp => {
-                  const shift = shifts.find(s => s.id === pickerShiftId);
-                  if (!shift) return false;
-                  const isAssigned = shift.employeeIds.includes(emp.id);
-                  if (isAssigned) return true; // Always show assigned
-                  const issues = evaluateEmployeeForShift(emp, shift, shifts, machines);
-                  const hasHardBlock = issues.some(i => i.isHardBlock);
-                  return !hasHardBlock; // Hide if has hard block and not assigned
-                })
-                .map(emp => {
-                  const shift = shifts.find(s => s.id === pickerShiftId);
-                  if (!shift) return null;
-                  
-                  const isAssigned = shift.employeeIds.includes(emp.id);
-                  const issues = evaluateEmployeeForShift(emp, shift, shifts, machines);
-                  const hasSoftBlock = issues.some(i => !i.isHardBlock);
+              {(() => {
+                const shift = shifts.find(s => s.id === pickerShiftId);
+                if (!shift) return null;
 
-                  return (
-                    <button
-                      key={emp.id}
-                      onClick={() => {
-                        if (isAssigned) {
-                          updateShift(pickerShiftId, { employeeIds: shift.employeeIds.filter(id => id !== emp.id) });
-                        } else {
-                          updateShift(pickerShiftId, { employeeIds: [...shift.employeeIds, emp.id] });
-                        }
-                      }}
-                      className={cn(
-                        "w-full text-left px-3 py-2 text-sm rounded-md flex flex-col gap-1 transition-colors mt-1 group",
-                        isAssigned ? "bg-blue-50 border border-blue-200" : "hover:bg-gray-100"
-                      )}
-                    >
-                      <div className="flex items-center justify-between w-full">
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded-full" style={{ backgroundColor: emp.color }} />
-                          <span className="font-medium">{emp.name}</span>
-                        </div>
-                        {hasSoftBlock && !isAssigned && <AlertTriangle className="w-4 h-4 text-orange-500" />}
-                        {isAssigned && (
-                          <div 
-                            className="p-1 rounded text-red-500 hover:bg-red-100 transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              updateShift(pickerShiftId, { employeeIds: shift.employeeIds.filter(id => id !== emp.id) });
-                            }}
-                          >
-                            <X className="w-4 h-4" />
-                          </div>
-                        )}
+                const evaluatedEmployees = employees.map(emp => {
+                  const isAssigned = shift.employeeIds.includes(emp.id);
+                  const issues = evaluateEmployeeForShift(emp, shift, shifts, machines);
+                  const hardIssues = issues.filter(i => i.isHardBlock);
+                  const softIssues = issues.filter(i => !i.isHardBlock);
+                  
+                  return {
+                    emp,
+                    isAssigned,
+                    hasHardBlock: hardIssues.length > 0,
+                    hasSoftBlock: softIssues.length > 0,
+                    softIssues
+                  };
+                });
+
+                const availableEmployees = evaluatedEmployees.filter(e => e.isAssigned || !e.hasHardBlock);
+
+                availableEmployees.sort((a, b) => {
+                  if (a.isAssigned && !b.isAssigned) return -1;
+                  if (!a.isAssigned && b.isAssigned) return 1;
+                  if (!a.hasSoftBlock && b.hasSoftBlock) return -1;
+                  if (a.hasSoftBlock && !b.hasSoftBlock) return 1;
+                  return a.emp.name.localeCompare(b.emp.name);
+                });
+
+                return availableEmployees.map(({ emp, isAssigned, hasSoftBlock, softIssues }) => (
+                  <button
+                    key={emp.id}
+                    onClick={() => {
+                      if (isAssigned) {
+                        updateShift(pickerShiftId, { employeeIds: shift.employeeIds.filter(id => id !== emp.id) });
+                      } else {
+                        updateShift(pickerShiftId, { employeeIds: [...shift.employeeIds, emp.id] });
+                      }
+                    }}
+                    className={cn(
+                      "w-full text-left px-3 py-2 text-sm rounded-md flex flex-col gap-1 transition-colors mt-1 group",
+                      isAssigned 
+                        ? "bg-blue-50 border border-blue-200" 
+                        : hasSoftBlock 
+                          ? "bg-orange-50/50 hover:bg-orange-50 border border-transparent hover:border-orange-200" 
+                          : "hover:bg-gray-100"
+                    )}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: emp.color }} />
+                        <span className={cn(
+                          "font-medium",
+                          isAssigned ? "text-blue-900" : hasSoftBlock ? "text-orange-900" : "text-gray-700"
+                        )}>{emp.name}</span>
                       </div>
-                      
-                      {issues.length > 0 && !isAssigned && (
-                        <div className="text-[10px] flex flex-col gap-0.5 pl-6">
-                          {issues.map((issue, idx) => (
-                            <span key={idx} className="text-orange-600">
-                              • {issue.message}
-                            </span>
-                          ))}
+                      {hasSoftBlock && !isAssigned && <AlertTriangle className="w-4 h-4 text-orange-500" />}
+                      {isAssigned && (
+                        <div 
+                          className="p-1 rounded text-red-500 hover:bg-red-100 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateShift(pickerShiftId, { employeeIds: shift.employeeIds.filter(id => id !== emp.id) });
+                          }}
+                        >
+                          <X className="w-4 h-4" />
                         </div>
                       )}
-                    </button>
-                  );
-                })}
+                    </div>
+                    
+                    {softIssues.length > 0 && !isAssigned && (
+                      <div className="text-[10px] flex flex-col gap-0.5 pl-6">
+                        {softIssues.map((issue, idx) => (
+                          <span key={idx} className="text-orange-600">
+                            • {issue.message}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </button>
+                ));
+              })()}
             </div>
           </div>
         </div>

@@ -42,6 +42,7 @@ export interface ValidationIssue {
   type: 'error' | 'warning' | 'info';
   message: string;
   shiftId?: string;
+  shiftIds?: string[];
   employeeId?: string;
   isHardBlock?: boolean;
 }
