@@ -282,6 +282,7 @@ export const evaluateEmployeeForShift = (employee: Employee, shift: Shift, allSh
   const issues = validate(hypotheticalShifts, [employee], machines);
   return issues.filter(i => 
     (i.employeeId === employee.id || i.employeeId === undefined) && 
-    (i.shiftId === shift.id || i.shiftId === undefined || (i.shiftIds && i.shiftIds.includes(shift.id)))
+    (i.shiftId === shift.id || i.shiftId === undefined || (i.shiftIds && i.shiftIds.includes(shift.id))) &&
+    !(i.message.startsWith('Nízké obsazení') || i.message.startsWith('Překročena kapacita stroje'))
   );
 };
