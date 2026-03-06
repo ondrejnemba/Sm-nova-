@@ -71,7 +71,7 @@ export const EmployeeRibbon = () => {
   }) : [];
 
   return (
-    <div className="min-h-16 border-b-2 border-gray-200 flex flex-wrap items-center p-2 gap-2 shrink-0 bg-gray-50 relative no-print">
+    <div className="min-h-16 border-b border-gray-200 flex flex-wrap items-center p-2 gap-2 shrink-0 bg-white relative no-print">
       {groupIds.map(groupId => {
         const group = employeeGroups.find(g => g.id === groupId);
         const groupEmps = groupedEmployees[groupId];
@@ -87,17 +87,17 @@ export const EmployeeRibbon = () => {
             <button
               key={groupId}
               onClick={() => toggleEmployeeGroup(groupId)}
-              className="flex items-center gap-1.5 p-1.5 border-2 border-blue-200 bg-blue-50/50 rounded min-w-[110px] text-left transition-colors hover:bg-blue-100/50"
+              className="flex items-center gap-1.5 p-1.5 border border-emerald-200 bg-emerald-50/50 rounded min-w-[110px] text-left transition-colors hover:bg-emerald-100/50"
             >
-              <div className="w-5 h-5 rounded bg-blue-500 flex items-center justify-center text-white shrink-0">
+              <div className="w-5 h-5 rounded bg-emerald-500 flex items-center justify-center text-white shrink-0">
                 <Users className="w-3 h-3" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-bold text-[10px] truncate text-blue-700 flex items-center justify-between">
+                <div className="font-bold text-[10px] truncate text-emerald-700 flex items-center justify-between">
                   {group?.name}
                   <ChevronRight className="w-3 h-3" />
                 </div>
-                <div className="text-[8px] text-blue-500 font-medium">
+                <div className="text-[8px] text-emerald-500 font-medium">
                   {groupEmps.length} zaměstnanců
                 </div>
               </div>
@@ -142,8 +142,8 @@ export const EmployeeRibbon = () => {
         <button
           onClick={() => setSelectedEmployeeId(isSelected ? null : emp.id)}
           className={cn(
-            "flex items-center gap-1.5 p-1.5 border-2 rounded min-w-[110px] text-left transition-colors relative",
-            isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-white hover:border-gray-300",
+            "flex items-center gap-1.5 p-1.5 border rounded min-w-[110px] text-left transition-colors relative shadow-sm",
+            isSelected ? "border-emerald-500 bg-emerald-50" : "border-gray-200 bg-white hover:border-gray-300",
             hasHardBlock && !isSelected && "border-red-400 bg-red-50",
             hasSoftBlock && !hasHardBlock && !isSelected && "border-orange-400 bg-orange-50"
           )}
@@ -166,14 +166,14 @@ export const EmployeeRibbon = () => {
 
         {/* History Panel as cards next to selected employee */}
         {isSelected && (
-          <div className="flex gap-1.5 items-center bg-blue-50/50 p-1 rounded border border-blue-100">
-            <div className="text-[7px] font-bold text-blue-700 uppercase px-0.5" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
+          <div className="flex gap-1.5 items-center bg-emerald-50/50 p-1 rounded border border-emerald-100">
+            <div className="text-[7px] font-bold text-emerald-700 uppercase px-0.5" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
               Historie
             </div>
             {employeeHistory.map((h, i) => (
-              <div key={i} className="flex flex-col bg-white border border-blue-100 rounded px-1.5 py-0.5 min-w-[75px]">
+              <div key={i} className="flex flex-col bg-white border border-emerald-100 rounded px-1.5 py-0.5 min-w-[75px] shadow-sm">
                 <div className="text-[8px] font-bold text-gray-400 capitalize">{format(h.date, 'EEEE d. M.', { locale: cs })}</div>
-                <div className="text-[9px] text-blue-600 font-medium truncate">
+                <div className="text-[9px] text-emerald-600 font-medium truncate">
                   {h.blocks.length > 0 ? h.blocks.join(', ') : 'Volno'}
                 </div>
               </div>

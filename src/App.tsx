@@ -26,7 +26,7 @@ export default function App() {
     <div className="flex flex-col h-screen bg-white text-gray-900 font-sans overflow-hidden">
       <div className="no-print flex flex-col h-full overflow-hidden">
         {isSyncing && (
-          <div className="bg-blue-50 text-blue-600 text-xs font-bold px-4 py-1 text-center border-b border-blue-100">
+          <div className="bg-emerald-50 text-emerald-600 text-xs font-bold px-4 py-1 text-center border-b border-emerald-100">
             Synchronizace se Supabase...
           </div>
         )}

@@ -31,7 +31,7 @@ const CopyDayButton = ({ onCopy }: { onCopy: (daysCount: number) => boolean }) =
 
   if (copied) {
     return (
-      <button className="text-green-600 bg-green-50 p-1.5 rounded-md flex items-center gap-1 cursor-default" disabled title="Úspěšně zkopírováno">
+      <button className="text-emerald-600 bg-emerald-50 p-1.5 rounded-md flex items-center gap-1 cursor-default" disabled title="Úspěšně zkopírováno">
         <Check className="w-4 h-4" />
       </button>
     );
@@ -47,16 +47,16 @@ const CopyDayButton = ({ onCopy }: { onCopy: (daysCount: number) => boolean }) =
 
   if (isCopyMode) {
     return (
-      <div className="flex items-center gap-1 bg-blue-50 p-1 rounded-md border border-blue-100">
+      <div className="flex items-center gap-1 bg-emerald-50 p-1 rounded-md border border-emerald-100">
         <div className="flex items-center gap-1 px-1">
-          <span className="text-[10px] font-bold text-blue-600 uppercase">Dny:</span>
+          <span className="text-[10px] font-bold text-emerald-600 uppercase">Dny:</span>
           <input 
             type="number" 
             min="1" 
             max="14" 
             value={daysCount} 
             onChange={(e) => setDaysCount(Math.max(1, Math.min(14, parseInt(e.target.value) || 1)))}
-            className="w-8 h-6 text-xs border border-blue-200 rounded text-center focus:outline-none focus:border-blue-400"
+            className="w-8 h-6 text-xs border border-emerald-200 rounded text-center focus:outline-none focus:border-emerald-400"
           />
         </div>
         <button 
@@ -68,7 +68,7 @@ const CopyDayButton = ({ onCopy }: { onCopy: (daysCount: number) => boolean }) =
               setFailed(true);
             }
           }}
-          className="text-white bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded-md text-xs font-bold transition-colors"
+          className="text-white bg-emerald-500 hover:bg-emerald-600 px-2 py-1 rounded-md text-xs font-bold transition-colors"
         >
           Potvrdit
         </button>
@@ -86,7 +86,7 @@ const CopyDayButton = ({ onCopy }: { onCopy: (daysCount: number) => boolean }) =
   return (
     <button 
       onClick={() => setCopyMode(true)}
-      className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 p-1.5 rounded-md transition-colors flex items-center gap-1"
+      className="text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 p-1.5 rounded-md transition-colors flex items-center gap-1"
       title="Kopírovat vybraný den do následujícího"
     >
       <Copy className="w-4 h-4" />
@@ -121,8 +121,8 @@ export const DayPanel = () => {
   }, [selectedDay]);
 
   return (
-    <div className="w-48 border-r-2 border-gray-200 flex flex-col shrink-0 bg-gray-50 no-print">
-      <div className="h-12 px-4 font-semibold text-sm text-gray-500 uppercase tracking-wider border-b-2 border-gray-200 bg-gray-50 z-10 flex items-center justify-between shrink-0">
+    <div className="w-48 border-r border-gray-200 flex flex-col shrink-0 bg-white no-print">
+      <div className="h-12 px-4 font-semibold text-sm text-gray-500 uppercase tracking-wider border-b border-gray-200 bg-white z-10 flex items-center justify-between shrink-0">
         <span>Dny</span>
         <div className="flex gap-1">
           <CopyDayButton onCopy={(count) => copyDayToNext(selectedDay, count)} />
@@ -149,8 +149,8 @@ export const DayPanel = () => {
               className={cn(
                 "w-full text-left px-4 py-3 text-sm font-medium transition-colors border-l-4",
                 isSelected 
-                  ? "bg-white border-blue-500 text-blue-700" 
-                  : "border-transparent text-gray-600 hover:bg-gray-100",
+                  ? "bg-emerald-50/50 border-emerald-500 text-emerald-700" 
+                  : "border-transparent text-gray-600 hover:bg-white",
                 isToday && !isSelected && "text-orange-600 font-bold"
               )}
             >

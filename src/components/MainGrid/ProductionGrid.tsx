@@ -309,8 +309,8 @@ export const ProductionGrid = () => {
   return (
     <div className="flex-1 overflow-auto bg-white relative flex flex-col no-print" ref={scrollContainerRef} onScroll={handleScroll}>
       {/* Header Row */}
-      <div className="flex sticky top-0 z-40 bg-white border-b-2 border-gray-200 w-max min-w-full h-12" onClick={() => clearShiftSelection()}>
-        <div className="w-24 shrink-0 sticky left-0 z-50 bg-gray-50 border-r-2 border-gray-200 flex items-center justify-center gap-1">
+      <div className="flex sticky top-0 z-40 bg-white border-b border-gray-200 w-max min-w-full h-12" onClick={() => clearShiftSelection()}>
+        <div className="w-24 shrink-0 sticky left-0 z-50 bg-white border-r border-gray-200 flex items-center justify-center gap-1">
           <button 
             onClick={toggleExport}
             className="p-1.5 hover:bg-gray-200 rounded-md transition-colors text-gray-500 hover:text-gray-700"
@@ -337,10 +337,10 @@ export const ProductionGrid = () => {
               return (
                 <div 
                   key={group.id} 
-                  className="flex flex-col border-r-2 border-gray-200 bg-gray-50 w-12 shrink-0 cursor-pointer hover:bg-gray-100 transition-colors"
+                  className="flex flex-col border-r border-gray-200 bg-white w-12 shrink-0 cursor-pointer hover:bg-gray-100 transition-colors"
                   onClick={() => toggleGroup(group.id)}
                 >
-                  <div className="h-6 border-b-2 border-gray-200 flex items-center justify-center">
+                  <div className="h-6 border-b border-gray-200 flex items-center justify-center">
                     <ChevronRight className="w-3 h-3 text-gray-500" />
                   </div>
                   <div className="h-6 flex items-center justify-center overflow-hidden">
@@ -353,9 +353,9 @@ export const ProductionGrid = () => {
             }
 
             return (
-              <div key={group.id} className="flex flex-col border-r-2 border-gray-200 bg-white" style={{ minWidth: `${groupMachines.length * 120}px`, flex: groupMachines.length }}>
+              <div key={group.id} className="flex flex-col border-r border-gray-200 bg-white" style={{ minWidth: `${groupMachines.length * 120}px`, flex: groupMachines.length }}>
                 <div 
-                  className="h-6 border-b-2 border-gray-200 flex items-center px-2 text-[10px] font-bold text-gray-700 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors select-none"
+                  className="h-6 border-b border-gray-200 flex items-center px-2 text-[10px] font-bold text-gray-700 bg-white cursor-pointer hover:bg-gray-100 transition-colors select-none"
                   onClick={() => toggleGroup(group.id)}
                 >
                   <ChevronDown className="w-3 h-3 mr-1" />
@@ -368,8 +368,8 @@ export const ProductionGrid = () => {
                       <div 
                         key={machine.id} 
                         className={cn(
-                          "flex items-center justify-center text-[10px] font-medium text-gray-600 border-r-2 border-gray-100 last:border-r-0 px-2 whitespace-nowrap min-w-[120px] flex-1 relative",
-                          isCopyMode && "cursor-pointer hover:bg-blue-50 transition-colors"
+                          "flex items-center justify-center text-[10px] font-medium text-gray-600 border-r border-gray-100 last:border-r-0 px-2 whitespace-nowrap min-w-[120px] flex-1 relative",
+                          isCopyMode && "cursor-pointer hover:bg-emerald-50 transition-colors"
                         )}
                         onClick={() => isCopyMode && toggleMachineForCopy(machine.id)}
                       >
@@ -377,7 +377,7 @@ export const ProductionGrid = () => {
                           <div className="absolute left-2 top-1/2 -translate-y-1/2">
                             <input 
                               type="checkbox" 
-                              className="w-3 h-3 cursor-pointer accent-blue-500"
+                              className="w-3 h-3 cursor-pointer accent-emerald-500"
                               checked={isSelectedForCopy}
                               onChange={() => {}} // handled by parent onClick
                             />
@@ -396,7 +396,7 @@ export const ProductionGrid = () => {
 
       {/* Copy Mode Banner */}
       {isCopyMode && (
-        <div className="sticky top-12 left-0 right-0 z-40 bg-blue-600 text-white px-4 py-2 flex items-center justify-between shadow-md no-print">
+        <div className="sticky top-12 left-0 right-0 z-40 bg-emerald-600 text-white px-4 py-2 flex items-center justify-between shadow-md no-print">
           <div className="flex items-center gap-2">
             <Copy className="w-4 h-4" />
             <span className="text-sm font-bold">Režim kopírování:</span>
@@ -414,14 +414,14 @@ export const ProductionGrid = () => {
       {/* Body Row */}
       <div className="flex w-max min-w-full flex-1">
         {/* Time Axis */}
-        <div className="w-24 shrink-0 sticky left-0 z-30 bg-white border-r-2 border-gray-200 flex flex-col">
+        <div className="w-24 shrink-0 sticky left-0 z-30 bg-white border-r border-gray-200 flex flex-col">
           {gridDays.map((day, dayIndex) => {
             const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
             return (
               <div key={day.toISOString()} className={cn("relative", isToday && "bg-orange-50/50")} style={{ height: `${dayHeight}px` }}>
                 <div 
                   className={cn(
-                    "absolute left-0 right-0 text-[10px] font-bold p-1 z-20 border-b-2 border-gray-200 text-center",
+                    "absolute left-0 right-0 text-[10px] font-bold p-1 z-20 border-b border-gray-200 text-center",
                     isToday ? "bg-orange-100 text-orange-800" : "bg-gray-100 text-gray-500"
                   )}
                   style={{ top: `${blockOffsetHours * 60 * pxPerMinute}px` }}
@@ -469,7 +469,7 @@ export const ProductionGrid = () => {
                     <div 
                       key={hour} 
                       className={cn(
-                        "absolute w-full border-t-2 flex flex-col items-center justify-center text-xs font-medium transition-colors",
+                        "absolute w-full border-t flex flex-col items-center justify-center text-xs font-medium transition-colors",
                         statusColor === 'red' ? "border-red-200" : 
                         statusColor === 'orange' ? "border-orange-200" : "border-gray-100 text-gray-500"
                       )}
@@ -491,7 +491,7 @@ export const ProductionGrid = () => {
                           "relative z-10 mt-0.5 px-1.5 py-0.5 text-[9px] font-black rounded-full border",
                           statusColor === 'red' ? "bg-red-50 text-red-600 border-red-200" :
                           statusColor === 'orange' ? "bg-orange-50 text-orange-600 border-orange-200" :
-                          "bg-green-50 text-green-700 border-green-100"
+                          "bg-emerald-50 text-emerald-700 border-emerald-100"
                         )}>
                           {totalAssigned}/{totalOptimum}
                         </div>
@@ -513,7 +513,7 @@ export const ProductionGrid = () => {
               return (
                 <div key={day.toISOString()} className={cn("relative", isToday && "bg-orange-50/20")} style={{ height: `${dayHeight}px` }}>
                   {blocks.map((hour) => (
-                    <div key={hour} className="absolute w-full border-t-2 border-gray-100" style={{ top: `${hour * 60 * pxPerMinute}px`, height: `${viewGranularityHours * 60 * pxPerMinute}px` }}>
+                    <div key={hour} className="absolute w-full border-t border-gray-100" style={{ top: `${hour * 60 * pxPerMinute}px`, height: `${viewGranularityHours * 60 * pxPerMinute}px` }}>
                       <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-gray-100 pointer-events-none" />
                     </div>
                   ))}
@@ -535,16 +535,16 @@ export const ProductionGrid = () => {
               const isCollapsed = collapsedGroups.includes(group.id);
 
               if (isCollapsed) {
-                return <div key={group.id} className="w-12 border-r-2 border-gray-200 shrink-0 bg-gray-50/30 h-full" />;
+                return <div key={group.id} className="w-12 border-r border-gray-200 shrink-0 bg-white/30 h-full" />;
               }
 
               return (
-                <div key={group.id} className="flex border-r-2 border-gray-200 h-full" style={{ minWidth: `${groupMachines.length * 120}px`, flex: groupMachines.length }}>
+                <div key={group.id} className="flex border-r border-gray-200 h-full" style={{ minWidth: `${groupMachines.length * 120}px`, flex: groupMachines.length }}>
                   {groupMachines.map(machine => {
                     const machineShifts = shifts.filter(s => s.machineId === machine.id);
                     
                     return (
-                      <div key={machine.id} className="relative flex-1 min-w-[120px] flex flex-col h-full border-r-2 border-gray-100 last:border-r-0">
+                      <div key={machine.id} className="relative flex-1 min-w-[120px] flex flex-col h-full border-r border-gray-100 last:border-r-0">
                         {/* Problem Highlights for this machine */}
                         <div className="absolute inset-0 pointer-events-none z-0">
                           {gridDays.map((day, dayIndex) => (
@@ -628,11 +628,11 @@ export const ProductionGrid = () => {
           onClick={() => setPickerShiftId(null)}
         >
           <div 
-            className="absolute bg-white shadow-xl border-2 border-gray-200 rounded-lg w-64 max-h-96 overflow-y-auto flex flex-col"
+            className="absolute bg-white shadow-xl border border-gray-200 rounded-lg w-64 max-h-96 overflow-y-auto flex flex-col"
             style={{ left: Math.min(pickerPos.x, window.innerWidth - 260), top: Math.min(pickerPos.y, window.innerHeight - 300) }}
             onClick={e => e.stopPropagation()}
           >
-            <div className="p-2 border-b-2 border-gray-100 bg-gray-50 text-xs font-bold text-gray-500 uppercase tracking-wider sticky top-0 z-10">
+            <div className="p-2 border-b border-gray-100 bg-white text-xs font-bold text-gray-500 uppercase tracking-wider sticky top-0 z-10">
               Přiřadit zaměstnance
             </div>
             <div className="p-1">
@@ -643,7 +643,7 @@ export const ProductionGrid = () => {
                   setPickerShiftId(null);
                 }}
               >
-                <div className="w-4 h-4 rounded-full border-2 border-gray-300 border-dashed" />
+                <div className="w-4 h-4 rounded-full border border-gray-300 border-dashed" />
                 Vyprázdnit směnu
               </button>
               
@@ -689,7 +689,7 @@ export const ProductionGrid = () => {
                     className={cn(
                       "w-full text-left px-3 py-2 text-sm rounded-md flex flex-col gap-1 transition-colors mt-1 group",
                       isAssigned 
-                        ? "bg-blue-50 border border-blue-200" 
+                        ? "bg-emerald-50 border border-emerald-200" 
                         : hasSoftBlock 
                           ? "bg-orange-50/50 hover:bg-orange-50 border border-transparent hover:border-orange-200" 
                           : "hover:bg-gray-100"
@@ -700,7 +700,7 @@ export const ProductionGrid = () => {
                         <div className="w-4 h-4 rounded-full" style={{ backgroundColor: emp.color }} />
                         <span className={cn(
                           "font-medium",
-                          isAssigned ? "text-blue-900" : hasSoftBlock ? "text-orange-900" : "text-gray-700"
+                          isAssigned ? "text-emerald-900" : hasSoftBlock ? "text-orange-900" : "text-gray-700"
                         )}>{emp.name}</span>
                       </div>
                       {hasSoftBlock && !isAssigned && <AlertTriangle className="w-4 h-4 text-orange-500" />}
@@ -839,7 +839,7 @@ const MachineColumn: React.FC<{
           data-sub-column-index={colIdx}
           className={cn(
             "flex-1 h-full relative transition-colors",
-            !dragState && "hover:bg-gray-50/50",
+            !dragState && "hover:bg-white/50",
             colIdx > 0 && "border-l border-gray-100 border-dashed"
           )}
           onPointerDown={(e) => handleColumnPointerDown(e, colIdx)}
@@ -872,14 +872,14 @@ const MachineColumn: React.FC<{
         const isUnderOccupied = shift.employeeIds.length < machine.capacity;
         const missingSlots = machine.capacity - shift.employeeIds.length;
 
-        let borderColor = '#22c55e'; // green-500
-        let bgColor = '#f0fdf4'; // green-50
-        let ringClass = isSelected ? "ring-2 ring-blue-500 ring-offset-1 z-20" : "z-10";
+        let borderColor = '#e5e7eb'; // gray-200
+        let bgColor = '#ffffff'; // white
+        let ringClass = isSelected ? "ring-2 ring-emerald-500 ring-offset-1 z-20" : "z-10";
 
         if (isShiftSelected) {
-          bgColor = '#e0f2fe';
-          borderColor = '#3b82f6';
-          ringClass = "ring-2 ring-blue-500 ring-offset-1 z-30";
+          bgColor = '#ecfdf5'; // emerald-50
+          borderColor = '#10b981'; // emerald-500
+          ringClass = "ring-2 ring-emerald-500 ring-offset-1 z-30";
         } else if (hasHardBlock) {
           borderColor = '#ef4444';
           bgColor = '#fef2f2';
@@ -889,17 +889,17 @@ const MachineColumn: React.FC<{
           bgColor = '#fff7ed';
           ringClass = "ring-2 ring-orange-500 ring-offset-1 z-20";
         } else if (shiftEmployees.length === 0) {
-          borderColor = '#d1d5db';
-          bgColor = '#f3f4f6';
+          borderColor = '#e5e7eb'; // gray-200
+          bgColor = '#f9fafb'; // gray-50
         }
 
         return (
           <React.Fragment key={shift.id}>
             <div
               className={cn(
-                "absolute rounded-md border-2 overflow-hidden flex flex-col transition-opacity group select-none",
+                "absolute rounded-md border overflow-hidden flex flex-col transition-opacity group select-none",
                 ringClass,
-                (isFaded || (dragState?.type === 'move' && dragState.shift.id === shift.id)) ? "opacity-0" : "opacity-100",
+                isFaded ? "opacity-30" : (dragState?.type === 'move' && dragState.shift.id === shift.id) ? "opacity-50" : "opacity-100",
                 shiftEmployees.length === 0 && !hasHardBlock && !hasSoftBlock && !isShiftSelected ? "border-dashed" : "",
                 isUnderOccupied && "border-r-4 border-r-orange-400"
               )}
@@ -1005,7 +1005,7 @@ const MachineColumn: React.FC<{
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-between">
                   <button 
                     onClick={(e) => openPicker(e, shift.id)}
-                    className="flex-1 flex justify-center items-center text-blue-600 hover:bg-blue-100 bg-blue-50 p-1 rounded transition-colors"
+                    className="flex-1 flex justify-center items-center text-emerald-600 hover:bg-emerald-100 bg-emerald-50 p-1 rounded transition-colors"
                   >
                     <UserPlus className="w-3 h-3 sm:w-4 sm:h-4" />
                   </button>
@@ -1029,28 +1029,10 @@ const MachineColumn: React.FC<{
             />
           </div>
 
-          {/* Move Preview */}
-          {dragState?.type === 'move' && dragState.shift.id === shift.id && dragState.preview && dragState.preview.machineId === machine.id && dragState.preview.subColumnIndex === colIdx && (
-            <div 
-              className="absolute rounded-md border-2 border-blue-500 bg-blue-500/10 pointer-events-none z-40 flex flex-col p-1.5"
-              style={{
-                top: `${getTopFromAbsolute(dragState.preview.start)}px`,
-                height: `${(dragState.preview.end - dragState.preview.start) * pxPerMinute}px`,
-                left: `calc(${leftPct}% + 2px)`,
-                width: `calc(${widthPct}% - 4px)`,
-              }}
-            >
-              <div className="text-[10px] font-black text-blue-700 uppercase tracking-tighter">Přesunout sem</div>
-              <div className="text-[9px] text-blue-600 font-bold">
-                {formatTime(dragState.preview.start)} - {formatTime(dragState.preview.end)}
-              </div>
-            </div>
-          )}
-
           {/* Resize Previews */}
           {dragState?.type === 'resize-start' && dragState.shift.id === shift.id && dragState.previewStart !== undefined && (
             <div 
-              className="absolute rounded-md border-2 border-blue-500 bg-blue-500/10 pointer-events-none z-40"
+              className="absolute rounded-md border border-emerald-500 bg-emerald-500/10 pointer-events-none z-40"
               style={{
                 top: `${getTopFromAbsolute(dragState.previewStart)}px`,
                 height: `${(shift.endMinuteAbsolute - dragState.previewStart) * pxPerMinute}px`,
@@ -1061,7 +1043,7 @@ const MachineColumn: React.FC<{
           )}
           {dragState?.type === 'resize-end' && dragState.shift.id === shift.id && dragState.previewEnd !== undefined && (
             <div 
-              className="absolute rounded-md border-2 border-blue-500 bg-blue-500/10 pointer-events-none z-40"
+              className="absolute rounded-md border border-emerald-500 bg-emerald-500/10 pointer-events-none z-40"
               style={{
                 top: `${getTopFromAbsolute(shift.startMinuteAbsolute)}px`,
                 height: `${(dragState.previewEnd - shift.startMinuteAbsolute) * pxPerMinute}px`,
@@ -1074,10 +1056,28 @@ const MachineColumn: React.FC<{
         );
       })}
 
+      {/* Move Preview (Outside shifts.map to work across machines) */}
+      {dragState?.type === 'move' && dragState.preview && dragState.preview.machineId === machine.id && (
+        <div 
+          className="absolute rounded-md border border-emerald-500 bg-emerald-500/10 pointer-events-none z-40 flex flex-col p-1.5"
+          style={{
+            top: `${getTopFromAbsolute(dragState.preview.start)}px`,
+            height: `${(dragState.preview.end - dragState.preview.start) * pxPerMinute}px`,
+            left: `calc(${(dragState.preview.subColumnIndex || 0) * (100 / vCols)}% + 2px)`,
+            width: `calc(${100 / vCols}% - 4px)`,
+          }}
+        >
+          <div className="text-[10px] font-black text-emerald-700 uppercase tracking-tighter">Přesunout sem</div>
+          <div className="text-[9px] text-emerald-600 font-bold">
+            {formatTime(dragState.preview.start)} - {formatTime(dragState.preview.end)}
+          </div>
+        </div>
+      )}
+
       {/* Drag Create Preview */}
       {dragState?.type === 'create' && dragState.machineId === machine.id && (
         <div 
-          className="absolute left-1 right-1 bg-blue-500/20 border-2 border-blue-500 border-dashed rounded-md pointer-events-none z-20"
+          className="absolute left-1 right-1 bg-emerald-500/20 border border-emerald-500 border-dashed rounded-md pointer-events-none z-20"
           style={{
             top: `${getTopFromAbsolute(Math.min(dragState.startMinute, dragState.currentMinute))}px`,
             height: `${Math.max(defaultShiftHours * 60 * pxPerMinute, Math.abs(dragState.currentMinute - dragState.startMinute) * pxPerMinute)}px`

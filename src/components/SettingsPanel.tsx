@@ -108,7 +108,7 @@ export const SettingsPanel = () => {
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex justify-end no-print">
       <div className="w-[500px] bg-white h-full shadow-2xl flex flex-col">
-        <div className="h-14 border-b-2 border-gray-200 flex items-center justify-between px-6 shrink-0">
+        <div className="h-14 border-b border-gray-200 flex items-center justify-between px-6 shrink-0">
           <h2 className="text-lg font-semibold">Nastavení</h2>
           <button onClick={toggleSettings} className="p-2 hover:bg-gray-100 rounded-md">
             <X className="w-5 h-5" />
@@ -120,12 +120,12 @@ export const SettingsPanel = () => {
           <section>
             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Obecné</h3>
             <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between p-3 border-2 border-gray-100 rounded-md">
+              <div className="flex items-center justify-between p-3 border border-gray-100 rounded-md">
                 <span className="text-sm font-medium">Výchozí délka směny (h)</span>
                 <select 
                   value={defaultShiftHours}
                   onChange={e => setDefaultShiftHours(Number(e.target.value))}
-                  className="border-2 border-gray-200 rounded-md px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+                  className="border border-gray-200 rounded-md px-2 py-1 text-sm focus:border-emerald-500 focus:outline-none"
                 >
                   <option value={1}>1 hodina</option>
                   <option value={2}>2 hodiny</option>
@@ -134,12 +134,12 @@ export const SettingsPanel = () => {
                   <option value={12}>12 hodin</option>
                 </select>
               </div>
-              <div className="flex items-center justify-between p-3 border-2 border-gray-100 rounded-md">
+              <div className="flex items-center justify-between p-3 border border-gray-100 rounded-md">
                 <span className="text-sm font-medium">Zobrazení časové osy</span>
                 <select 
                   value={viewGranularityHours}
                   onChange={e => setViewGranularityHours(Number(e.target.value))}
-                  className="border-2 border-gray-200 rounded-md px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+                  className="border border-gray-200 rounded-md px-2 py-1 text-sm focus:border-emerald-500 focus:outline-none"
                 >
                   <option value={1}>1 hodina</option>
                   <option value={2}>2 hodiny</option>
@@ -157,16 +157,16 @@ export const SettingsPanel = () => {
             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Skupiny zaměstnanců</h3>
             <div className="flex flex-col gap-2">
               {employeeGroups.map(group => (
-                <div key={group.id} className="flex flex-col p-3 border-2 border-gray-100 rounded-md gap-2 bg-white">
+                <div key={group.id} className="flex flex-col p-3 border border-gray-100 rounded-md gap-2 bg-white">
                   {editingEmployeeGroupId === group.id ? (
                     <div className="flex items-center gap-2">
                       <input 
                         type="text" 
                         value={group.name}
                         onChange={e => updateEmployeeGroup(group.id, { name: e.target.value })}
-                        className="flex-1 border-2 border-gray-200 rounded-md px-2 py-1 text-sm"
+                        className="flex-1 border border-gray-200 rounded-md px-2 py-1 text-sm"
                       />
-                      <button onClick={() => setEditingEmployeeGroupId(null)} className="text-green-600 hover:bg-green-50 p-1.5 rounded-md">
+                      <button onClick={() => setEditingEmployeeGroupId(null)} className="text-emerald-600 hover:bg-emerald-50 p-1.5 rounded-md">
                         <Check className="w-4 h-4" />
                       </button>
                     </div>
@@ -186,17 +186,17 @@ export const SettingsPanel = () => {
                 </div>
               ))}
             </div>
-            <div className="flex gap-2 mt-4 pt-4 border-t-2 border-gray-100">
+            <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
               <input 
                 type="text" 
                 value={newEmployeeGroupName}
                 onChange={e => setNewEmployeeGroupName(e.target.value)}
                 placeholder="Název nové skupiny" 
-                className="flex-1 border-2 border-gray-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                className="flex-1 border border-gray-200 rounded-md px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
               <button 
                 onClick={handleAddEmployeeGroup}
-                className="bg-gray-900 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800 flex items-center gap-2"
+                className="bg-emerald-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-600 flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" /> Přidat skupinu
               </button>
@@ -218,7 +218,7 @@ export const SettingsPanel = () => {
                     setDraggedEmpIndex(index);
                   }}
                   onDragEnd={() => setDraggedEmpIndex(null)}
-                  className={`flex flex-col p-3 border-2 border-gray-100 rounded-md gap-2 bg-white transition-all ${draggedEmpIndex === index ? 'opacity-50 scale-[0.98]' : ''}`}
+                  className={`flex flex-col p-3 border border-gray-100 rounded-md gap-2 bg-white transition-all ${draggedEmpIndex === index ? 'opacity-50 scale-[0.98]' : ''}`}
                 >
                   {editingEmpId === emp.id ? (
                     <div className="flex flex-col gap-2">
@@ -233,9 +233,9 @@ export const SettingsPanel = () => {
                           type="text" 
                           value={emp.name}
                           onChange={e => updateEmployee(emp.id, { name: e.target.value })}
-                          className="flex-1 border-2 border-gray-200 rounded-md px-2 py-1 text-sm"
+                          className="flex-1 border border-gray-200 rounded-md px-2 py-1 text-sm"
                         />
-                        <button onClick={() => setEditingEmpId(null)} className="text-green-600 hover:bg-green-50 p-1.5 rounded-md">
+                        <button onClick={() => setEditingEmpId(null)} className="text-emerald-600 hover:bg-emerald-50 p-1.5 rounded-md">
                           <Check className="w-4 h-4" />
                         </button>
                       </div>
@@ -245,7 +245,7 @@ export const SettingsPanel = () => {
                           <select 
                             value={emp.groupId || ''}
                             onChange={e => updateEmployee(emp.id, { groupId: e.target.value || undefined })}
-                            className="border-2 border-gray-200 rounded-md px-2 py-1 text-sm"
+                            className="border border-gray-200 rounded-md px-2 py-1 text-sm"
                           >
                             <option value="">Bez skupiny</option>
                             {employeeGroups.map(g => (
@@ -259,7 +259,7 @@ export const SettingsPanel = () => {
                             type="number" 
                             value={emp.weeklyLimitHours}
                             onChange={e => updateEmployee(emp.id, { weeklyLimitHours: Number(e.target.value) })}
-                            className="w-20 border-2 border-gray-200 rounded-md px-2 py-1 text-sm"
+                            className="w-20 border border-gray-200 rounded-md px-2 py-1 text-sm"
                           />
                         </div>
                         <div className="flex items-center gap-2">
@@ -268,7 +268,7 @@ export const SettingsPanel = () => {
                             type="number" 
                             value={emp.maxShiftHours || 12}
                             onChange={e => updateEmployee(emp.id, { maxShiftHours: Number(e.target.value) })}
-                            className="w-20 border-2 border-gray-200 rounded-md px-2 py-1 text-sm"
+                            className="w-20 border border-gray-200 rounded-md px-2 py-1 text-sm"
                           />
                         </div>
                       </div>
@@ -276,7 +276,7 @@ export const SettingsPanel = () => {
                         <span className="text-gray-500 text-sm font-medium">Oprávnění pro stroje:</span>
                         <div className="flex flex-wrap gap-2">
                           {machines.map(m => (
-                            <label key={m.id} className="flex items-center gap-1 text-xs bg-gray-50 px-2 py-1 rounded border border-gray-200 cursor-pointer hover:bg-gray-100">
+                            <label key={m.id} className="flex items-center gap-1 text-xs bg-white px-2 py-1 rounded border border-gray-200 cursor-pointer hover:bg-gray-100">
                               <input 
                                 type="checkbox"
                                 checked={emp.allowedMachineIds.includes(m.id)}
@@ -303,7 +303,7 @@ export const SettingsPanel = () => {
                         <span className="text-sm font-medium">{emp.name}</span>
                         <span className="text-xs text-gray-400">({emp.weeklyLimitHours}h)</span>
                         {emp.groupId && (
-                          <span className="text-[9px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-100 font-bold uppercase">
+                          <span className="text-[9px] bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded border border-emerald-100 font-bold uppercase">
                             {employeeGroups.find(g => g.id === emp.groupId)?.name}
                           </span>
                         )}
@@ -321,17 +321,17 @@ export const SettingsPanel = () => {
                 </div>
               ))}
             </div>
-            <div className="flex gap-2 mt-4 pt-4 border-t-2 border-gray-100">
+            <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
               <input 
                 type="text" 
                 value={newEmpName}
                 onChange={e => setNewEmpName(e.target.value)}
                 placeholder="Jméno nového zaměstnance" 
-                className="flex-1 border-2 border-gray-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                className="flex-1 border border-gray-200 rounded-md px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
               <button 
                 onClick={handleAddEmployee}
-                className="bg-gray-900 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800 flex items-center gap-2"
+                className="bg-emerald-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-600 flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" /> Přidat
               </button>
@@ -346,11 +346,11 @@ export const SettingsPanel = () => {
                 value={newGroupName}
                 onChange={e => setNewGroupName(e.target.value)}
                 placeholder="Název skupiny" 
-                className="flex-1 border-2 border-gray-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                className="flex-1 border border-gray-200 rounded-md px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
               <button 
                 onClick={handleAddGroup}
-                className="bg-gray-900 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800 flex items-center gap-2"
+                className="bg-emerald-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-600 flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" /> Přidat
               </button>
@@ -368,7 +368,7 @@ export const SettingsPanel = () => {
                     setDraggedGroupIndex(index);
                   }}
                   onDragEnd={() => setDraggedGroupIndex(null)}
-                  className={`flex items-center justify-between p-3 border-2 border-gray-100 rounded-md bg-white transition-all ${draggedGroupIndex === index ? 'opacity-50 scale-[0.98]' : ''}`}
+                  className={`flex items-center justify-between p-3 border border-gray-100 rounded-md bg-white transition-all ${draggedGroupIndex === index ? 'opacity-50 scale-[0.98]' : ''}`}
                 >
                   {editingGroupId === group.id ? (
                     <div className="flex flex-col gap-2 flex-1">
@@ -377,9 +377,9 @@ export const SettingsPanel = () => {
                           type="text" 
                           value={group.name}
                           onChange={e => updateMachineGroup(group.id, { name: e.target.value })}
-                          className="flex-1 border-2 border-gray-200 rounded-md px-2 py-1 text-sm"
+                          className="flex-1 border border-gray-200 rounded-md px-2 py-1 text-sm"
                         />
-                        <button onClick={() => setEditingGroupId(null)} className="text-green-600 hover:bg-green-50 p-1.5 rounded-md">
+                        <button onClick={() => setEditingGroupId(null)} className="text-emerald-600 hover:bg-emerald-50 p-1.5 rounded-md">
                           <Check className="w-4 h-4" />
                         </button>
                       </div>
@@ -388,7 +388,7 @@ export const SettingsPanel = () => {
                           type="checkbox"
                           checked={!!group.highlight12h}
                           onChange={e => updateMachineGroup(group.id, { highlight12h: e.target.checked })}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                         />
                         Zvýraznit 12h směny v exportu (oranžově)
                       </label>
@@ -424,13 +424,13 @@ export const SettingsPanel = () => {
                 value={newMachineName}
                 onChange={e => setNewMachineName(e.target.value)}
                 placeholder="Název stroje" 
-                className="border-2 border-gray-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                className="border border-gray-200 rounded-md px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
               <div className="flex gap-2">
                 <select 
                   value={newMachineGroupId}
                   onChange={e => setNewMachineGroupId(e.target.value)}
-                  className="flex-1 border-2 border-gray-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                  className="flex-1 border border-gray-200 rounded-md px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
                 >
                   <option value="">Vyberte skupinu</option>
                   {machineGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
@@ -442,7 +442,7 @@ export const SettingsPanel = () => {
                   onChange={e => setNewMachineCapacity(parseInt(e.target.value) || 1)}
                   placeholder="Max" 
                   title="Maximální kapacita"
-                  className="w-16 border-2 border-gray-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                  className="w-16 border border-gray-200 rounded-md px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
                 />
                 <input 
                   type="number" 
@@ -451,7 +451,7 @@ export const SettingsPanel = () => {
                   onChange={e => setNewMachineMinCapacity(parseInt(e.target.value) || 1)}
                   placeholder="Min" 
                   title="Minimální kapacita"
-                  className="w-16 border-2 border-gray-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                  className="w-16 border border-gray-200 rounded-md px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
                 />
                 <input 
                   type="number" 
@@ -460,7 +460,7 @@ export const SettingsPanel = () => {
                   onChange={e => setNewMachineIdealCapacity(parseInt(e.target.value) || 1)}
                   placeholder="Ideál" 
                   title="Ideální kapacita"
-                  className="w-16 border-2 border-gray-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                  className="w-16 border border-gray-200 rounded-md px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
                 />
                 <input 
                   type="number" 
@@ -470,12 +470,12 @@ export const SettingsPanel = () => {
                   onChange={e => setNewMachineVirtualColumns(parseInt(e.target.value) || 1)}
                   placeholder="V-Sloupce" 
                   title="Virtuální sloupce"
-                  className="w-20 border-2 border-gray-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                  className="w-20 border border-gray-200 rounded-md px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
                 />
               </div>
               <button 
                 onClick={handleAddMachine}
-                className="bg-gray-900 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800 flex items-center justify-center gap-2 mt-2"
+                className="bg-emerald-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-600 flex items-center justify-center gap-2 mt-2"
               >
                 <Plus className="w-4 h-4" /> Přidat stroj
               </button>
@@ -495,7 +495,7 @@ export const SettingsPanel = () => {
                       setDraggedMachineIndex(index);
                     }}
                     onDragEnd={() => setDraggedMachineIndex(null)}
-                    className={`flex flex-col p-3 border-2 border-gray-100 rounded-md gap-2 bg-white transition-all ${draggedMachineIndex === index ? 'opacity-50 scale-[0.98]' : ''}`}
+                    className={`flex flex-col p-3 border border-gray-100 rounded-md gap-2 bg-white transition-all ${draggedMachineIndex === index ? 'opacity-50 scale-[0.98]' : ''}`}
                   >
                     {editingMachineId === machine.id ? (
                       <div className="flex flex-col gap-2">
@@ -504,9 +504,9 @@ export const SettingsPanel = () => {
                             type="text" 
                             value={machine.name}
                             onChange={e => updateMachine(machine.id, { name: e.target.value })}
-                            className="flex-1 border-2 border-gray-200 rounded-md px-2 py-1 text-sm"
+                            className="flex-1 border border-gray-200 rounded-md px-2 py-1 text-sm"
                           />
-                          <button onClick={() => setEditingMachineId(null)} className="text-green-600 hover:bg-green-50 p-1.5 rounded-md">
+                          <button onClick={() => setEditingMachineId(null)} className="text-emerald-600 hover:bg-emerald-50 p-1.5 rounded-md">
                             <Check className="w-4 h-4" />
                           </button>
                         </div>
@@ -514,7 +514,7 @@ export const SettingsPanel = () => {
                           <select 
                             value={machine.groupId}
                             onChange={e => updateMachine(machine.id, { groupId: e.target.value })}
-                            className="flex-1 border-2 border-gray-200 rounded-md px-2 py-1 text-sm"
+                            className="flex-1 border border-gray-200 rounded-md px-2 py-1 text-sm"
                           >
                             {machineGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                           </select>
@@ -525,7 +525,7 @@ export const SettingsPanel = () => {
                               min="1"
                               value={machine.capacity}
                               onChange={e => updateMachine(machine.id, { capacity: Number(e.target.value) })}
-                              className="w-12 border-2 border-gray-200 rounded-md px-1 py-1 text-xs"
+                              className="w-12 border border-gray-200 rounded-md px-1 py-1 text-xs"
                             />
                             <span className="text-[10px] text-gray-400 ml-1">Min:</span>
                             <input 
@@ -533,7 +533,7 @@ export const SettingsPanel = () => {
                               min="1"
                               value={machine.minCapacity || 1}
                               onChange={e => updateMachine(machine.id, { minCapacity: Number(e.target.value) })}
-                              className="w-12 border-2 border-gray-200 rounded-md px-1 py-1 text-xs"
+                              className="w-12 border border-gray-200 rounded-md px-1 py-1 text-xs"
                             />
                             <span className="text-[10px] text-gray-400 ml-1">Ideál:</span>
                             <input 
@@ -541,7 +541,7 @@ export const SettingsPanel = () => {
                               min="1"
                               value={machine.idealCapacity || 1}
                               onChange={e => updateMachine(machine.id, { idealCapacity: Number(e.target.value) })}
-                              className="w-12 border-2 border-gray-200 rounded-md px-1 py-1 text-xs"
+                              className="w-12 border border-gray-200 rounded-md px-1 py-1 text-xs"
                             />
                             <span className="text-[10px] text-gray-400 ml-1" title="Virtuální sloupce">V-Sloupce:</span>
                             <input 
@@ -550,7 +550,7 @@ export const SettingsPanel = () => {
                               max="5"
                               value={machine.virtualColumns || 1}
                               onChange={e => updateMachine(machine.id, { virtualColumns: Number(e.target.value) })}
-                              className="w-12 border-2 border-gray-200 rounded-md px-1 py-1 text-xs"
+                              className="w-12 border border-gray-200 rounded-md px-1 py-1 text-xs"
                             />
                           </div>
                         </div>
