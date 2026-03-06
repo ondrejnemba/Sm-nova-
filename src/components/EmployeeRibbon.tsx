@@ -113,15 +113,15 @@ export const EmployeeRibbon = () => {
         }
 
         return (
-          <div key={groupId} className="flex items-center gap-2 bg-gray-100/50 p-1 rounded-md border border-gray-200">
+          <div key={groupId} className="flex items-start gap-2 bg-gray-100/50 p-1 rounded-md border border-gray-200">
             <button 
               onClick={() => toggleEmployeeGroup(groupId)}
-              className="px-1 py-4 hover:bg-gray-200 rounded transition-colors text-gray-400"
+              className="px-1 py-1.5 mt-1 hover:bg-gray-200 rounded transition-colors text-gray-400 shrink-0"
               title="Sbalit skupinu"
             >
               <ChevronDown className="w-3 h-3" />
             </button>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 flex-1">
               {groupEmps.map(emp => renderEmployeeCard(emp))}
             </div>
           </div>

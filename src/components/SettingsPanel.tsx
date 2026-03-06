@@ -18,6 +18,7 @@ export const SettingsPanel = () => {
   const addEmployeeGroup = useScheduleStore(state => state.addEmployeeGroup);
   const updateEmployeeGroup = useScheduleStore(state => state.updateEmployeeGroup);
   const deleteEmployeeGroup = useScheduleStore(state => state.deleteEmployeeGroup);
+  const reorderEmployeeGroups = useScheduleStore(state => state.reorderEmployeeGroups);
   
   const machineGroups = useScheduleStore(state => state.machineGroups);
   const addMachineGroup = useScheduleStore(state => state.addMachineGroup);
@@ -59,6 +60,9 @@ export const SettingsPanel = () => {
   const [draggedMachineIndex, setDraggedMachineIndex] = useState<number | null>(null);
 
   if (!settingsOpen) return null;
+
+  const [draggedEmployeeGroupId, setDraggedEmployeeGroupId] = useState<string | null>(null);
+  const [dragOverEmployeeGroupId, setDragOverEmployeeGroupId] = useState<string | null>(null);
 
   const handleAddEmployee = () => {
     if (!newEmpName) return;
@@ -156,8 +160,39 @@ export const SettingsPanel = () => {
           <section>
             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Skupiny zaměstnanců</h3>
             <div className="flex flex-col gap-2">
-              {employeeGroups.map(group => (
-                <div key={group.id} className="flex flex-col p-3 border border-gray-100 rounded-md gap-2 bg-white">
+              {employeeGroups.map((group, index) => (
+                <div 
+                  key={group.id} 
+                  className={`flex flex-col p-3 border rounded-md gap-2 bg-white transition-colors ${
+                    dragOverEmployeeGroupId === group.id ? 'border-emerald-500 bg-emerald-50' : 'border-gray-100'
+                  } ${draggedEmployeeGroupId === group.id ? 'opacity-50' : ''}`}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.effectAllowed = 'move';
+                    setDraggedEmployeeGroupId(group.id);
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    if (draggedEmployeeGroupId !== group.id) {
+                      setDragOverEmployeeGroupId(group.id);
+                    }
+                  }}
+                  onDragLeave={() => setDragOverEmployeeGroupId(null)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragOverEmployeeGroupId(null);
+                    if (draggedEmployeeGroupId && draggedEmployeeGroupId !== group.id) {
+                      const draggedIndex = employeeGroups.findIndex(g => g.id === draggedEmployeeGroupId);
+                      reorderEmployeeGroups(draggedIndex, index);
+                    }
+                    setDraggedEmployeeGroupId(null);
+                  }}
+                  onDragEnd={() => {
+                    setDraggedEmployeeGroupId(null);
+                    setDragOverEmployeeGroupId(null);
+                  }}
+                >
                   {editingEmployeeGroupId === group.id ? (
                     <div className="flex items-center gap-2">
                       <input 
@@ -172,7 +207,12 @@ export const SettingsPanel = () => {
                     </div>
                   ) : (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">{group.name}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 p-1">
+                          <GripVertical className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-medium">{group.name}</span>
+                      </div>
                       <div className="flex items-center gap-1">
                         <button onClick={() => setEditingEmployeeGroupId(group.id)} className="text-gray-500 hover:bg-gray-100 p-1.5 rounded-md">
                           <Edit2 className="w-4 h-4" />

@@ -62,6 +62,7 @@ interface ScheduleState {
   addEmployeeGroup: (group: EmployeeGroup) => void;
   updateEmployeeGroup: (id: string, group: Partial<EmployeeGroup>) => void;
   deleteEmployeeGroup: (id: string) => void;
+  reorderEmployeeGroups: (startIndex: number, endIndex: number) => void;
   toggleEmployeeGroup: (groupId: string) => void;
   setSnapGranularityMinutes: (mins: number) => void;
   setDefaultShiftHours: (hours: number) => void;
@@ -161,6 +162,12 @@ export const useScheduleStore = create<ScheduleState>()(
         };
         if (supabase) supabase.from('employee_groups').delete().eq('id', id).then(({ error }) => { if (error) console.error(error); });
         return newState;
+      }),
+      reorderEmployeeGroups: (startIndex, endIndex) => set((state) => {
+        const result = Array.from(state.employeeGroups);
+        const [removed] = result.splice(startIndex, 1);
+        result.splice(endIndex, 0, removed);
+        return { employeeGroups: result };
       }),
       toggleEmployeeGroup: (groupId) => set((state) => ({
         collapsedEmployeeGroups: state.collapsedEmployeeGroups.includes(groupId)
