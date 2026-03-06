@@ -33,7 +33,7 @@ export const EmployeeRibbon = () => {
   const groupIds = [...employeeGroups.map(g => g.id), 'none'].filter(id => groupedEmployees[id]);
 
   // Calculate history for selected employee
-  const historyDays = [3, 2, 1].map(d => subDays(parseISO(selectedDay), d));
+  const historyDays = [1, 2, 3].map(d => subDays(parseISO(selectedDay), d));
   const employeeHistory = selectedEmployeeId ? historyDays.map(date => {
     const dateStr = format(date, 'yyyy-MM-dd');
     const dayShifts = shifts.filter(s => {
@@ -172,7 +172,7 @@ export const EmployeeRibbon = () => {
             </div>
             {employeeHistory.map((h, i) => (
               <div key={i} className="flex flex-col bg-white border border-blue-100 rounded px-1.5 py-0.5 min-w-[75px]">
-                <div className="text-[8px] font-bold text-gray-400">{format(h.date, 'd.M.', { locale: cs })}</div>
+                <div className="text-[8px] font-bold text-gray-400 capitalize">{format(h.date, 'EEEE d. M.', { locale: cs })}</div>
                 <div className="text-[9px] text-blue-600 font-medium truncate">
                   {h.blocks.length > 0 ? h.blocks.join(', ') : 'Volno'}
                 </div>
