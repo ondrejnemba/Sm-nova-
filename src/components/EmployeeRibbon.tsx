@@ -3,7 +3,7 @@ import { useScheduleStore } from '../store/scheduleStore';
 import { cn } from '../utils/cn';
 import { validate } from '../engine/validation';
 import { AlertTriangle, XCircle, History, ChevronRight, ChevronDown, Users } from 'lucide-react';
-import { format, subDays, parseISO } from 'date-fns';
+import { format, subDays, parseISO, startOfWeek, addDays } from 'date-fns';
 import { cs } from 'date-fns/locale';
 
 export const EmployeeRibbon = () => {
@@ -18,6 +18,13 @@ export const EmployeeRibbon = () => {
   const selectedDay = useScheduleStore(state => state.selectedDay);
 
   const validationIssues = validate(shifts, employees, machines);
+
+  // Calculate current week boundaries
+  const currentDayDate = parseISO(selectedDay);
+  const currentWeekStart = startOfWeek(currentDayDate, { weekStartsOn: 1 });
+  const currentWeekEnd = addDays(currentWeekStart, 7);
+  const currentWeekStartMinute = Math.floor(currentWeekStart.getTime() / 60000);
+  const currentWeekEndMinute = Math.floor(currentWeekEnd.getTime() / 60000);
 
   const selectedEmployee = employees.find(e => e.id === selectedEmployeeId);
   
@@ -129,8 +136,17 @@ export const EmployeeRibbon = () => {
 
   function renderEmployeeCard(emp: typeof employees[0]) {
     const empShifts = shifts.filter(s => s.employeeIds.includes(emp.id));
-    const workedMinutes = empShifts.reduce((acc, s) => acc + (s.endMinuteAbsolute - s.startMinuteAbsolute), 0);
-    const workedHours = Math.round(workedMinutes / 60);
+    
+    // Calculate hours worked in the current calendar week
+    const shiftsInCurrentWeek = empShifts.filter(s => s.startMinuteAbsolute < currentWeekEndMinute && s.endMinuteAbsolute > currentWeekStartMinute);
+    let workedMinutesInCurrentWeek = 0;
+    for (const s of shiftsInCurrentWeek) {
+      const overlapStart = Math.max(s.startMinuteAbsolute, currentWeekStartMinute);
+      const overlapEnd = Math.min(s.endMinuteAbsolute, currentWeekEndMinute);
+      workedMinutesInCurrentWeek += (overlapEnd - overlapStart);
+    }
+    const currentWeeklyHours = Math.round(workedMinutesInCurrentWeek / 60);
+
     const isSelected = selectedEmployeeId === emp.id;
 
     const empIssues = validationIssues.filter(i => i.employeeId === emp.id);
@@ -159,7 +175,7 @@ export const EmployeeRibbon = () => {
               {hasSoftBlock && !hasHardBlock && <AlertTriangle className="w-3 h-3 text-orange-500 shrink-0" />}
             </div>
             <div className="text-[9px] text-gray-500">
-              {workedHours}h / {emp.weeklyLimitHours}h
+              {currentWeeklyHours}h / {emp.weeklyLimitHours}h
             </div>
           </div>
         </button>

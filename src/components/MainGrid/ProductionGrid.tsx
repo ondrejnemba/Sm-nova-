@@ -865,7 +865,7 @@ const MachineColumn: React.FC<{
         const isShiftSelected = selectedShiftIds.includes(shift.id);
         const isFaded = selectedEmployeeId && !isSelected;
 
-        const shiftIssues = validationIssues.filter(i => i.shiftId === shift.id);
+        const shiftIssues = validationIssues.filter(i => i.shiftId === shift.id || (i.shiftIds && i.shiftIds.includes(shift.id)));
         const hasHardBlock = shiftIssues.some(i => i.isHardBlock);
         const hasSoftBlock = shiftIssues.some(i => !i.isHardBlock);
 
