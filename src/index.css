@@ -26,10 +26,6 @@
     display: block !important;
     position: static !important;
   }
-  @page {
-    size: A4 portrait;
-    margin: 10mm;
-  }
   .break-before-page {
     break-before: page;
   }

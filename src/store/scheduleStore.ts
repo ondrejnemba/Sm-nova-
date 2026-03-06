@@ -398,15 +398,38 @@ export const useScheduleStore = create<ScheduleState>()(
           if (empGroupRes.error) {
             console.warn("employee_groups table might not exist yet. Please run the SQL migration.", empGroupRes.error);
             employeeGroupsTableExists = false;
+            finalEmpGroups = get().employeeGroups; // Preserve local state if table is missing
           } else {
+            // If we got a successful response but it's empty, and we have local groups, 
+            // it might mean the insert failed previously. Let's try to push them now.
             finalEmpGroups = empGroupRes.data || [];
+            if (finalEmpGroups.length === 0 && get().employeeGroups.length > 0) {
+              finalEmpGroups = get().employeeGroups;
+              // Try to sync them up to the database in the background
+              supabase.from('employee_groups').insert(finalEmpGroups).then(({ error }) => {
+                if (error) console.error("Failed to sync local employee groups to DB:", error);
+              });
+            }
           }
 
           // Only update state if we actually got data from Supabase
           // (prevents overwriting local state with empty arrays if DB is fresh)
           if (empRes.data.length > 0 || groupRes.data.length > 0 || finalEmpGroups.length > 0) {
+            
+            // Merge local groupId if remote is missing it (due to stale schema cache)
+            const localEmployees = get().employees;
+            const mergedEmployees = empRes.data.map(remoteEmp => {
+              const localEmp = localEmployees.find(e => e.id === remoteEmp.id);
+              if (localEmp && localEmp.groupId && !remoteEmp.groupId) {
+                // Try to sync the missing groupId back to Supabase
+                supabase.from('employees').update({ groupId: localEmp.groupId }).eq('id', remoteEmp.id).then();
+                return { ...remoteEmp, groupId: localEmp.groupId };
+              }
+              return remoteEmp;
+            });
+
             set({
-              employees: empRes.data,
+              employees: mergedEmployees,
               machineGroups: groupRes.data,
               machines: machRes.data,
               shifts: shiftRes.data,

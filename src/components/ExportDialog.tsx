@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Calendar, Printer, Layout, ChevronRight, Check } from 'lucide-react';
+import { X, Calendar, Printer, Layout, ChevronRight, Check, Settings2 } from 'lucide-react';
 import { useScheduleStore } from '../store/scheduleStore';
 import { cn } from '../utils/cn';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
@@ -15,6 +15,8 @@ export const ExportDialog = () => {
 
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedGroups, setSelectedGroups] = useState<string[]>(machineGroups.map(g => g.id));
+  const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
+  const [scale, setScale] = useState(100);
 
   if (!isOpen) return null;
 
@@ -115,22 +117,64 @@ export const ExportDialog = () => {
             </div>
           </section>
 
-          {/* Náhled rozvržení */}
+          {/* Nastavení tisku */}
           <section className="bg-gray-50 p-4 rounded-xl border border-dashed border-gray-300">
-            <h4 className="text-xs font-bold text-gray-400 uppercase mb-3">Nastavení tisku</h4>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <ChevronRight className="w-4 h-4 text-blue-600" />
-                <span>Formát: <strong>A4 na výšku</strong></span>
+            <h4 className="text-xs font-bold text-gray-400 uppercase mb-4 flex items-center gap-2">
+              <Settings2 className="w-4 h-4" /> Nastavení tisku
+            </h4>
+            
+            <div className="grid grid-cols-2 gap-6">
+              {/* Orientace */}
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Orientace papíru</label>
+                <div className="flex bg-white rounded-lg border border-gray-200 p-1">
+                  <button
+                    onClick={() => setOrientation('portrait')}
+                    className={cn(
+                      "flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-colors",
+                      orientation === 'portrait' ? "bg-blue-100 text-blue-800" : "text-gray-500 hover:bg-gray-50"
+                    )}
+                  >
+                    Na výšku
+                  </button>
+                  <button
+                    onClick={() => setOrientation('landscape')}
+                    className={cn(
+                      "flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-colors",
+                      orientation === 'landscape' ? "bg-blue-100 text-blue-800" : "text-gray-500 hover:bg-gray-50"
+                    )}
+                  >
+                    Na šířku
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <ChevronRight className="w-4 h-4 text-blue-600" />
-                <span>Rozvržení: <strong>Jedno středisko na stranu</strong></span>
+
+              {/* Měřítko */}
+              <div>
+                <label className="flex justify-between text-xs font-bold text-gray-500 uppercase mb-2">
+                  <span>Měřítko</span>
+                  <span className="text-blue-600">{scale}%</span>
+                </label>
+                <input 
+                  type="range" 
+                  min="50" 
+                  max="150" 
+                  step="5"
+                  value={scale}
+                  onChange={(e) => setScale(Number(e.target.value))}
+                  className="w-full accent-blue-600"
+                />
+                <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+                  <span>Menší (50%)</span>
+                  <span>Výchozí (100%)</span>
+                  <span>Větší (150%)</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <ChevronRight className="w-4 h-4 text-blue-600" />
-                <span>Celkem stran: <strong>{selectedGroups.length}</strong></span>
-              </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-gray-200 flex items-center gap-2 text-sm text-gray-600">
+              <ChevronRight className="w-4 h-4 text-blue-600" />
+              <span>Celkem stran k tisku: <strong>{selectedGroups.length}</strong></span>
             </div>
           </section>
         </div>
@@ -153,15 +197,37 @@ export const ExportDialog = () => {
       </div>
       </div>
 
-      {/* Hidden Print Content - Optimized for A4 Portrait */}
+      {/* Hidden Print Content - Optimized for A4 */}
+      <style type="text/css" media="print">
+        {`
+          @page {
+            size: A4 ${orientation};
+            margin: 10mm;
+          }
+        `}
+      </style>
       <div id="print-container" className="print-only fixed inset-0 bg-white z-[9999] overflow-auto p-0 m-0">
         {selectedGroups.map((groupId, pageIdx) => {
           const group = machineGroups.find(g => g.id === groupId);
           if (!group) return null;
           const groupMachines = machines.filter(m => m.groupId === groupId);
 
+          const pageWidth = orientation === 'portrait' ? '210mm' : '297mm';
+          const pageHeight = orientation === 'portrait' ? '297mm' : '210mm';
+
           return (
-            <div key={groupId} className={`p-8 bg-white ${pageIdx > 0 ? 'break-before-page' : ''}`} style={{ minHeight: '297mm', width: '210mm', pageBreakAfter: 'always', color: '#000', fontFamily: 'Inter, sans-serif' }}>
+            <div 
+              key={groupId} 
+              className={`p-8 bg-white ${pageIdx > 0 ? 'break-before-page' : ''}`} 
+              style={{ 
+                minHeight: pageHeight, 
+                width: pageWidth, 
+                pageBreakAfter: 'always', 
+                color: '#000', 
+                fontFamily: 'Inter, sans-serif',
+                zoom: scale / 100
+              }}
+            >
               <header className="flex justify-between items-end mb-8 border-b-2 border-gray-900 pb-4">
                 <div>
                   <div className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-1">Týdenní rozpis směn</div>
