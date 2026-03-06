@@ -644,8 +644,13 @@ export const ProductionGrid = () => {
           onClick={() => setPickerShiftId(null)}
         >
           <div 
-            className="absolute bg-white shadow-xl border border-gray-200 rounded-lg w-64 max-h-96 overflow-y-auto flex flex-col"
-            style={{ left: Math.min(pickerPos.x, window.innerWidth - 260), top: Math.min(pickerPos.y, window.innerHeight - 300) }}
+            className="absolute bg-white shadow-xl border border-gray-200 rounded-lg w-64 flex flex-col"
+            style={{ 
+              left: Math.min(pickerPos.x, window.innerWidth - 260), 
+              bottom: 16,
+              maxHeight: 'calc(100vh - 32px)',
+              overflowY: 'auto'
+            }}
             onClick={e => e.stopPropagation()}
           >
             <div className="p-2 border-b border-gray-100 bg-white text-xs font-bold text-gray-500 uppercase tracking-wider sticky top-0 z-10">
