@@ -21,7 +21,8 @@ export const Auth = () => {
 
     try {
       if (isSignUp) {
-        if (!email.toLowerCase().endsWith('@emba.cz')) {
+        const isAllowedEmail = email.toLowerCase().endsWith('@emba.cz') || email.toLowerCase() === 'embapama2@gmail.com';
+        if (!isAllowedEmail) {
           setError('Registrace je povolena pouze pro firemní e-maily (@emba.cz).');
           setLoading(false);
           return;
@@ -45,7 +46,7 @@ export const Auth = () => {
         });
         if (error) throw error;
         
-        // Check if user is approved
+        // Check if user is approved (admin bypass)
         if (data.user) {
           const { data: profile, error: profileError } = await supabase
             .from('user_profiles')
@@ -53,7 +54,10 @@ export const Auth = () => {
             .eq('id', data.user.id)
             .single();
             
-          if (profileError || !profile?.is_approved) {
+          const userEmail = data.user.email?.toLowerCase();
+          const isAdmin = userEmail === 'ondrej.nosek@emba.cz' || userEmail === 'embapama2@gmail.com';
+            
+          if (!isAdmin && (profileError || !profile?.is_approved)) {
             await supabase.auth.signOut();
             throw new Error('Váš účet zatím nebyl schválen administrátorem (ondrej.nosek@emba.cz).');
           }

@@ -29,14 +29,17 @@ export default function App() {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (session?.user) {
+        if (session?.user) {
         const { data: profile } = await supabase
           .from('user_profiles')
           .select('is_approved')
           .eq('id', session.user.id)
           .single();
           
-        if (!profile?.is_approved) {
+        const userEmail = session.user.email?.toLowerCase();
+        const isAdmin = userEmail === 'ondrej.nosek@emba.cz' || userEmail === 'embapama2@gmail.com';
+          
+        if (!isAdmin && !profile?.is_approved) {
           await supabase.auth.signOut();
           setSession(null);
         } else {
@@ -60,7 +63,10 @@ export default function App() {
           .eq('id', newSession.user.id)
           .single();
           
-        if (!profile?.is_approved) {
+        const userEmail = newSession.user.email?.toLowerCase();
+        const isAdmin = userEmail === 'ondrej.nosek@emba.cz' || userEmail === 'embapama2@gmail.com';
+          
+        if (!isAdmin && !profile?.is_approved) {
           await supabase.auth.signOut();
           setSession(null);
           return;
