@@ -2,10 +2,9 @@ import React from 'react';
 import { useScheduleStore } from '../store/scheduleStore';
 import { cn } from '../utils/cn';
 import { validate } from '../engine/validation';
-import { AlertTriangle, XCircle, History, ChevronRight, ChevronDown, Users, LogOut } from 'lucide-react';
+import { AlertTriangle, XCircle, History, ChevronRight, ChevronDown, Users } from 'lucide-react';
 import { format, subDays, parseISO, startOfWeek, addDays } from 'date-fns';
 import { cs } from 'date-fns/locale';
-import { supabase } from '../lib/supabase';
 
 export const EmployeeRibbon = () => {
   const employees = useScheduleStore(state => state.employees);
@@ -134,19 +133,6 @@ export const EmployeeRibbon = () => {
       {employees.length === 0 && (
         <div className="text-xs text-gray-400 italic px-4">Žádní zaměstnanci. Přidejte je v nastavení.</div>
       )}
-
-      <div className="ml-auto flex items-center gap-2">
-        {supabase && (
-          <button
-            onClick={() => supabase.auth.signOut()}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors border border-transparent hover:border-red-200"
-            title="Odhlásit se"
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">Odhlásit se</span>
-          </button>
-        )}
-      </div>
     </div>
   );
 
