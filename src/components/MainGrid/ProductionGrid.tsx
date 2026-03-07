@@ -39,6 +39,8 @@ export const ProductionGrid = () => {
   const setCopyMode = useScheduleStore(state => state.setCopyMode);
   const selectedMachineIdsForCopy = useScheduleStore(state => state.selectedMachineIdsForCopy);
   const toggleMachineForCopy = useScheduleStore(state => state.toggleMachineForCopy);
+  const viewMode = useScheduleStore(state => state.viewMode);
+  const setViewMode = useScheduleStore(state => state.setViewMode);
   
   const addShift = useScheduleStore(state => state.addShift);
   const updateShift = useScheduleStore(state => state.updateShift);
@@ -76,8 +78,14 @@ export const ProductionGrid = () => {
         // We need to subtract the header height (48px) and a small buffer (4px)
         // to ensure the full 32 hours fit exactly in the visible area below the header.
         const availableHeight = entry.contentRect.height - 48 - 4; 
-        // Chceme vidět celý den (24h) + 1 blok předchozího dne + 1 blok následujícího dne
-        const totalHoursToFit = 24 + (2 * viewGranularityHours);
+        
+        let totalHoursToFit = 24 + (2 * viewGranularityHours);
+        if (viewMode === 'overview') {
+          totalHoursToFit = 24 * 3; // 3 days
+        } else if (viewMode === 'week') {
+          totalHoursToFit = 24 * 7; // 7 days
+        }
+
         const pxPerHour = availableHeight / totalHoursToFit;
         
         // Nastavíme výšku dne tak, aby pxPerHour odpovídalo dostupné výšce
@@ -86,7 +94,7 @@ export const ProductionGrid = () => {
     });
     observer.observe(scrollContainerRef.current);
     return () => observer.disconnect();
-  }, [viewGranularityHours]);
+  }, [viewGranularityHours, viewMode]);
 
   const pxPerMinute = dayHeight / 1440;
 
@@ -126,12 +134,20 @@ export const ProductionGrid = () => {
     if (!scrollContainerRef.current) return;
     const dayIndex = gridDays.findIndex(d => format(d, 'yyyy-MM-dd') === selectedDay);
     if (dayIndex !== -1) {
-      // We want to center the day in the viewport.
-      // The viewport height is designed to fit 24h + 2 * viewGranularityHours.
-      // The production day starts at blockOffsetHours (02:00).
-      // We want to see one block before that (which starts at blockOffsetHours - viewGranularityHours).
       const pxPerHour = dayHeight / 24;
-      const offset = (viewGranularityHours - blockOffsetHours) * pxPerHour;
+      let offset = (viewGranularityHours - blockOffsetHours) * pxPerHour;
+      
+      if (viewMode === 'overview') {
+        offset = (24 - blockOffsetHours) * pxPerHour;
+      } else if (viewMode === 'week') {
+        // Center the day in the week view? Or just align to top?
+        // User wants "current day always in center" (from previous request for DayPanel)
+        // but for the grid, let's align so current day is at top or center.
+        // If we want it centered:
+        const availableHeight = scrollContainerRef.current.clientHeight - 48;
+        offset = (availableHeight / 2) - (blockOffsetHours * pxPerHour);
+      }
+
       const targetScroll = (dayIndex * dayHeight) - offset;
       
       const isExplicitTrigger = scrollToDayTrigger > lastScrollTriggerRef.current;
@@ -149,7 +165,7 @@ export const ProductionGrid = () => {
         isProgrammaticScrollRef.current = false;
       }, 1000); // Allow time for smooth scroll to finish
     }
-  }, [scrollToDayTrigger, dayHeight, viewGranularityHours]); // Re-run when dayHeight or viewGranularityHours changes
+  }, [scrollToDayTrigger, dayHeight, viewGranularityHours, viewMode]); // Re-run when dayHeight, viewGranularityHours or viewMode changes
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     if (isProgrammaticScrollRef.current) return;
@@ -447,6 +463,8 @@ export const ProductionGrid = () => {
                   const blockStartAbsolute = dayIndex * 1440 + hour * 60;
                   const blockEndAbsolute = blockStartAbsolute + viewGranularityHours * 60;
                   
+                  const isVeryCompact = viewMode === 'week';
+
                   let hasRedProblem = false;
                   let hasYellowProblem = false;
                   let totalAssigned = 0;
@@ -484,9 +502,10 @@ export const ProductionGrid = () => {
                     <div 
                       key={hour} 
                       className={cn(
-                        "absolute w-full border-t flex flex-col items-center justify-center text-xs font-medium transition-colors",
+                        "absolute w-full border-t flex flex-col items-center justify-center font-medium transition-colors",
                         statusColor === 'red' ? "border-red-200" : 
-                        statusColor === 'orange' ? "border-orange-200" : "border-gray-100 text-gray-500"
+                        statusColor === 'orange' ? "border-orange-200" : "border-gray-100 text-gray-500",
+                        isVeryCompact ? "text-[9px]" : "text-xs"
                       )}
                       style={{ top: `${hour * 60 * pxPerMinute}px`, height: `${viewGranularityHours * 60 * pxPerMinute}px` }}
                     >
@@ -499,9 +518,9 @@ export const ProductionGrid = () => {
                         statusColor === 'orange' ? "text-orange-600 font-bold" : "bg-white/80"
                       )}>
                         {((hour + 24) % 24).toString().padStart(2, '0')}
-                        {viewGranularityHours > 1 && <>-{((hour + viewGranularityHours + 24) % 24).toString().padStart(2, '0')}</>}
+                        {!isVeryCompact && viewGranularityHours > 1 && <>-{((hour + viewGranularityHours + 24) % 24).toString().padStart(2, '0')}</>}
                       </span>
-                      {activeMachines > 0 && (
+                      {activeMachines > 0 && !isVeryCompact && (
                         <div className={cn(
                           "relative z-10 mt-0.5 px-1.5 py-0.5 text-[9px] font-black rounded-full border",
                           statusColor === 'red' ? "bg-red-50 text-red-600 border-red-200" :
@@ -806,6 +825,7 @@ const MachineColumn: React.FC<{
   openPicker
 }) => {
   const deleteShift = useScheduleStore(state => state.deleteShift);
+  const viewMode = useScheduleStore(state => state.viewMode);
   const vCols = machine.virtualColumns || 1;
 
   const handleColumnPointerDown = (e: React.PointerEvent, colIdx: number) => {
@@ -927,6 +947,9 @@ const MachineColumn: React.FC<{
         const isUnderOccupied = shift.employeeIds.length < (machine.idealCapacity || machine.minCapacity || 1);
         const missingSlots = machine.capacity - shift.employeeIds.length;
 
+        const isCompact = viewMode !== 'detail';
+        const isVeryCompact = viewMode === 'week';
+
         let borderColor = '#e5e7eb'; // gray-200
         let bgColor = '#ffffff'; // white
         let ringClass = isSelected ? "ring-2 ring-emerald-500 ring-offset-1 z-20" : "z-10";
@@ -1013,43 +1036,56 @@ const MachineColumn: React.FC<{
             }}
           >
             {/* Top Resize Handle */}
-            <div 
-              className="absolute top-0 left-0 right-0 h-2 cursor-ns-resize hover:bg-black/10 z-10"
-              onPointerDown={(e) => {
-                e.stopPropagation();
-                setDragState({ type: 'resize-start', shift });
-              }}
-            />
+            {!isVeryCompact && (
+              <div 
+                className="absolute top-0 left-0 right-0 h-2 cursor-ns-resize hover:bg-black/10 z-10"
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  setDragState({ type: 'resize-start', shift });
+                }}
+              />
+            )}
 
-            <div className="flex-1 p-1.5 flex flex-col pointer-events-none">
+            <div className={cn(
+              "flex-1 flex flex-col pointer-events-none",
+              isVeryCompact ? "p-0.5" : isCompact ? "p-1" : "p-1.5"
+            )}>
               <div className="flex justify-between items-start pointer-events-auto">
                 <div className="flex items-center gap-1 flex-1 min-w-0">
-                  {hasHardBlock && <XCircle className="w-3 h-3 sm:w-4 sm:h-4 text-red-500 shrink-0" />}
-                  {!hasHardBlock && hasSoftBlock && <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 text-orange-500 shrink-0" />}
-                  <div className="text-[10px] sm:text-xs font-bold truncate text-gray-700">
+                  {hasHardBlock && <XCircle className={cn("text-red-500 shrink-0", isVeryCompact ? "w-2 h-2" : "w-3 h-3 sm:w-4 sm:h-4")} />}
+                  {!hasHardBlock && hasSoftBlock && <AlertTriangle className={cn("text-orange-500 shrink-0", isVeryCompact ? "w-2 h-2" : "w-3 h-3 sm:w-4 sm:h-4")} />}
+                  <div className={cn(
+                    "font-bold truncate text-gray-700",
+                    isVeryCompact ? "text-[8px] leading-none" : isCompact ? "text-[10px]" : "text-[10px] sm:text-xs"
+                  )}>
                     {shiftEmployees.length}/{machine.idealCapacity || machine.minCapacity || 1}
                   </div>
                 </div>
-                <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-1">
-                  <button 
-                    onClick={(e) => openPicker(e, shift.id)}
-                    className="flex justify-center items-center text-emerald-600 hover:bg-emerald-100 bg-emerald-50 px-1.5 py-0.5 rounded transition-colors"
-                    title="Přidat zaměstnance"
-                  >
-                    <UserPlus className="w-3 h-3" />
-                  </button>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); deleteShift(shift.id); }}
-                    className="flex justify-center items-center text-red-600 hover:bg-red-100 bg-red-50 px-1 py-0.5 rounded transition-colors"
-                    title="Smazat směnu"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
+                {!isVeryCompact && (
+                  <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-1">
+                    <button 
+                      onClick={(e) => openPicker(e, shift.id)}
+                      className="flex justify-center items-center text-emerald-600 hover:bg-emerald-100 bg-emerald-50 px-1.5 py-0.5 rounded transition-colors"
+                      title="Přidat zaměstnance"
+                    >
+                      <UserPlus className="w-3 h-3" />
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); deleteShift(shift.id); }}
+                      className="flex justify-center items-center text-red-600 hover:bg-red-100 bg-red-50 px-1 py-0.5 rounded transition-colors"
+                      title="Smazat směnu"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
               </div>
               
               {/* Employee List */}
-              <div className="flex flex-col gap-0.5 mt-1 overflow-hidden flex-1 pointer-events-auto">
+              <div className={cn(
+                "flex flex-col gap-0.5 mt-1 overflow-hidden flex-1 pointer-events-auto",
+                isVeryCompact ? "mt-0.5" : ""
+              )}>
                 {shiftEmployees.map(emp => {
                   const empIssues = shiftIssues.filter(i => i.employeeId === emp.id);
                   const empHasHardBlock = empIssues.some(i => i.isHardBlock);
@@ -1057,9 +1093,11 @@ const MachineColumn: React.FC<{
                   
                   return (
                     <div key={emp.id} className={cn(
-                      "flex items-center gap-1.5 text-[10px] sm:text-xs truncate rounded px-1 py-0.5 w-full bg-white/50 border border-black/5 hover:bg-white transition-colors cursor-pointer",
+                      "flex items-center gap-1.5 truncate rounded px-1 py-0.5 w-full bg-white/50 border border-black/5 hover:bg-white transition-colors cursor-pointer",
+                      isVeryCompact ? "px-0.5 py-0" : "",
                       empHasHardBlock ? "bg-red-100 text-red-700 font-bold border-red-200" : 
-                      empHasSoftBlock ? "bg-orange-100 text-orange-700 font-bold border-orange-200" : ""
+                      empHasSoftBlock ? "bg-orange-100 text-orange-700 font-bold border-orange-200" : "",
+                      isVeryCompact ? "text-[8px] leading-none" : isCompact ? "text-[9px]" : "text-[10px] sm:text-xs"
                     )}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1067,16 +1105,16 @@ const MachineColumn: React.FC<{
                     }}
                     title="Kliknutím odeberete zaměstnance ze směny"
                     >
-                      <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: emp.color }} />
-                      <span className="truncate font-medium text-gray-900 flex-1">{emp.name}</span>
-                      <X className="w-3 h-3 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all shrink-0" />
+                      <div className={cn("rounded-full shrink-0", isVeryCompact ? "w-1 h-1" : "w-2 h-2")} style={{ backgroundColor: emp.color }} />
+                      {!isVeryCompact && <span className="truncate font-medium text-gray-900 flex-1">{emp.name}</span>}
+                      {!isVeryCompact && <X className="w-3 h-3 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all shrink-0" />}
                     </div>
                   );
                 })}
               </div>
 
               {/* Collision Text */}
-              {shiftIssues.length > 0 && (
+              {shiftIssues.length > 0 && !isVeryCompact && (
                 <div className="mt-1 flex flex-col gap-0.5 pointer-events-auto">
                   {shiftIssues.map((issue, idx) => (
                     <div key={idx} className={cn("text-[9px] leading-tight p-0.5 rounded", issue.isHardBlock ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700")}>
@@ -1086,21 +1124,28 @@ const MachineColumn: React.FC<{
                 </div>
               )}
 
-              <div className="mt-auto pointer-events-auto border-t border-black/5 pt-0.5 flex flex-col gap-1">
-                <div className="text-[10px] text-gray-600 truncate font-medium">
-                  {formatTime(shift.startMinuteAbsolute)} - {formatTime(shift.endMinuteAbsolute)}
+              {!isVeryCompact && (
+                <div className="mt-auto pointer-events-auto border-t border-black/5 pt-0.5 flex flex-col gap-1">
+                  <div className={cn(
+                    "text-gray-600 truncate font-medium",
+                    isCompact ? "text-[8px]" : "text-[10px]"
+                  )}>
+                    {formatTime(shift.startMinuteAbsolute)} - {formatTime(shift.endMinuteAbsolute)}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Bottom Resize Handle */}
-            <div 
-              className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize hover:bg-black/10 z-10"
-              onPointerDown={(e) => {
-                e.stopPropagation();
-                setDragState({ type: 'resize-end', shift });
-              }}
-            />
+            {!isVeryCompact && (
+              <div 
+                className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize hover:bg-black/10 z-10"
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  setDragState({ type: 'resize-end', shift });
+                }}
+              />
+            )}
           </div>
 
           {/* Resize Previews */}

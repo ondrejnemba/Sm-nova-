@@ -26,6 +26,7 @@ interface ScheduleState {
   defaultShiftHours: number;
   viewGranularityHours: number;
   scrollToDayTrigger: number;
+  viewMode: 'detail' | 'overview' | 'week';
 
   addEmployee: (emp: Employee) => void;
   updateEmployee: (id: string, emp: Partial<Employee>) => void;
@@ -68,6 +69,7 @@ interface ScheduleState {
   setDefaultShiftHours: (hours: number) => void;
   setViewGranularityHours: (hours: number) => void;
   triggerScrollToDay: (day: string) => void;
+  setViewMode: (mode: 'detail' | 'overview' | 'week') => void;
   
   // Supabase Sync
   isSyncing: boolean;
@@ -116,6 +118,7 @@ export const useScheduleStore = create<ScheduleState>()(
       defaultShiftHours: 4, 
       viewGranularityHours: 4, 
       scrollToDayTrigger: 0,
+      viewMode: 'detail',
       isSyncing: false,
       lastSyncError: null,
 
@@ -382,6 +385,7 @@ export const useScheduleStore = create<ScheduleState>()(
       setDefaultShiftHours: (hours) => set({ defaultShiftHours: hours }),
       setViewGranularityHours: (hours) => set({ viewGranularityHours: hours }),
       triggerScrollToDay: (day) => set(state => ({ scrollToDayTrigger: state.scrollToDayTrigger + 1, selectedDay: day })),
+      setViewMode: (mode) => set({ viewMode: mode }),
       
       syncWithSupabase: async () => {
         if (!supabase) return;

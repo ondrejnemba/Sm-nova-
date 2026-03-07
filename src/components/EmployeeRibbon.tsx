@@ -16,6 +16,8 @@ export const EmployeeRibbon = () => {
   const shifts = useScheduleStore(state => state.shifts);
   const machines = useScheduleStore(state => state.machines);
   const selectedDay = useScheduleStore(state => state.selectedDay);
+  const viewMode = useScheduleStore(state => state.viewMode);
+  const setViewMode = useScheduleStore(state => state.setViewMode);
 
   const validationIssues = validate(shifts, employees, machines);
 

@@ -98,37 +98,97 @@ export const DayPanel = () => {
   const selectedDay = useScheduleStore(state => state.selectedDay);
   const triggerScrollToDay = useScheduleStore(state => state.triggerScrollToDay);
   const copyDayToNext = useScheduleStore(state => state.copyDayToNext);
+  const viewMode = useScheduleStore(state => state.viewMode);
+  const setViewMode = useScheduleStore(state => state.setViewMode);
 
   const today = new Date();
   const days = getGridDays();
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const selectedButtonRef = useRef<HTMLButtonElement>(null);
+  const [containerHeight, setContainerHeight] = useState(0);
+
+  const isVeryCompact = viewMode === 'week';
+
+  useEffect(() => {
+    if (!scrollRef.current) return;
+    const observer = new ResizeObserver(entries => {
+      for (let entry of entries) {
+        setContainerHeight(entry.contentRect.height);
+      }
+    });
+    observer.observe(scrollRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const lastDayRef = useRef(selectedDay);
 
   useEffect(() => {
     if (selectedButtonRef.current && scrollRef.current) {
       const container = scrollRef.current;
       const button = selectedButtonRef.current;
       
-      const containerHeight = container.clientHeight;
       const buttonTop = button.offsetTop;
       const buttonHeight = button.clientHeight;
       
       const targetScroll = buttonTop - (containerHeight / 2) + (buttonHeight / 2);
       
-      container.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
+      const isDayChange = lastDayRef.current !== selectedDay;
+      lastDayRef.current = selectedDay;
+
+      container.scrollTo({ 
+        top: Math.max(0, targetScroll), 
+        behavior: isDayChange ? 'smooth' : 'auto' 
+      });
     }
-  }, [selectedDay]);
+  }, [selectedDay, containerHeight]);
 
   return (
-    <div className="w-48 border-r border-gray-200 flex flex-col shrink-0 bg-white no-print">
-      <div className="h-12 px-4 font-semibold text-sm text-gray-500 uppercase tracking-wider border-b border-gray-200 bg-white z-10 flex items-center justify-between shrink-0">
-        <span>Dny</span>
-        <div className="flex gap-1">
-          <CopyDayButton onCopy={(count) => copyDayToNext(selectedDay, count)} />
+    <div className={cn("border-r border-gray-200 flex flex-col shrink-0 bg-white no-print transition-all", isVeryCompact ? "w-32" : "w-48")}>
+      <div className="h-12 px-2 font-semibold text-sm text-gray-500 uppercase tracking-wider border-b border-gray-200 bg-white z-10 flex items-center justify-between shrink-0">
+        <div className="flex bg-gray-100 p-0.5 rounded-md gap-0.5 border border-gray-200">
+          <button 
+            onClick={() => setViewMode('detail')}
+            className={cn(
+              "p-1.5 rounded-sm transition-all flex items-center justify-center",
+              viewMode === 'detail' ? "bg-white text-emerald-600 shadow-sm" : "text-gray-400 hover:text-gray-600"
+            )}
+            title="Detail (1 den)"
+          >
+            <div className="w-1.5 h-1.5 rounded-full bg-current" />
+          </button>
+          <button 
+            onClick={() => setViewMode('overview')}
+            className={cn(
+              "p-1.5 rounded-sm transition-all flex items-center justify-center",
+              viewMode === 'overview' ? "bg-white text-emerald-600 shadow-sm" : "text-gray-400 hover:text-gray-600"
+            )}
+            title="Přehled (3 dny)"
+          >
+            <div className="flex gap-0.5">
+              <div className="w-0.5 h-1.5 rounded-full bg-current opacity-40" />
+              <div className="w-0.5 h-1.5 rounded-full bg-current" />
+              <div className="w-0.5 h-1.5 rounded-full bg-current opacity-40" />
+            </div>
+          </button>
+          <button 
+            onClick={() => setViewMode('week')}
+            className={cn(
+              "p-1.5 rounded-sm transition-all flex items-center justify-center",
+              viewMode === 'week' ? "bg-white text-emerald-600 shadow-sm" : "text-gray-400 hover:text-gray-600"
+            )}
+            title="Týden (7 dní)"
+          >
+            <div className="grid grid-cols-3 gap-px">
+              {[...Array(6)].map((_, i) => <div key={i} className="w-[1.5px] h-[1.5px] rounded-full bg-current" />)}
+            </div>
+          </button>
+        </div>
+        <div className="flex gap-0.5">
+          {!isVeryCompact && <CopyDayButton onCopy={(count) => copyDayToNext(selectedDay, count)} />}
           <button 
             onClick={() => triggerScrollToDay(format(today, 'yyyy-MM-dd'))}
-            className="text-orange-500 hover:text-orange-700 hover:bg-orange-50 p-1.5 rounded-md transition-colors flex items-center gap-1"
+            className="text-orange-500 hover:text-orange-700 hover:bg-orange-50 p-1.5 rounded-md transition-colors flex items-center justify-center"
             title="Dnes"
           >
             <CalendarDays className="w-4 h-4" />
@@ -147,15 +207,20 @@ export const DayPanel = () => {
               ref={isSelected ? selectedButtonRef : null}
               onClick={() => triggerScrollToDay(dateStr)}
               className={cn(
-                "w-full text-left px-4 py-3 text-sm font-medium transition-colors border-l-4",
+                "w-full text-left transition-colors border-l-4",
+                isVeryCompact ? "px-2 py-2" : "px-4 py-3",
                 isSelected 
                   ? "bg-emerald-50/50 border-emerald-500 text-emerald-700" 
                   : "border-transparent text-gray-600 hover:bg-white",
                 isToday && !isSelected && "text-orange-600 font-bold"
               )}
             >
-              <div className="capitalize">{format(day, 'EEEE', { locale: cs })}</div>
-              <div className="text-xs text-gray-400 mt-0.5">{format(day, 'd. MMMM', { locale: cs })}</div>
+              <div className={cn("capitalize font-medium", isVeryCompact ? "text-xs" : "text-sm")}>
+                {format(day, isVeryCompact ? 'EEE' : 'EEEE', { locale: cs })}
+              </div>
+              <div className={cn("text-gray-400 mt-0.5", isVeryCompact ? "text-[10px]" : "text-xs")}>
+                {format(day, isVeryCompact ? 'd.M.' : 'd. MMMM', { locale: cs })}
+              </div>
             </button>
           );
         })}
