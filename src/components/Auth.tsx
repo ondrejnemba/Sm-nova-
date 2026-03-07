@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Lock } from 'lucide-react';
+import { Lock, Beaker } from 'lucide-react';
 
-export const Auth = () => {
+interface AuthProps {
+  onTestMode?: () => void;
+  onHardcodedLogin?: () => void;
+}
+
+export const Auth = ({ onTestMode, onHardcodedLogin }: AuthProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,6 +25,14 @@ export const Auth = () => {
     setError(null);
 
     try {
+      // HARDCODED BYPASS FOR MAREK
+      if (email.toLowerCase() === 'marek.michalko@emba.cz' && password === 'Gecko03072026') {
+        if (onHardcodedLogin) {
+          onHardcodedLogin();
+          return;
+        }
+      }
+
       if (isSignUp) {
         const isAllowedEmail = email.toLowerCase().endsWith('@emba.cz') || email.toLowerCase() === 'embapama2@gmail.com';
         if (!isAllowedEmail) {
@@ -83,6 +96,17 @@ export const Auth = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {onTestMode && (
+            <button
+              onClick={onTestMode}
+              type="button"
+              className="w-full mb-6 flex justify-center items-center gap-2 py-2 px-4 border border-amber-300 rounded-md shadow-sm text-sm font-medium text-amber-800 bg-amber-50 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
+            >
+              <Beaker className="w-4 h-4" />
+              Testovací režim (přeskočit přihlášení)
+            </button>
+          )}
+
           <form className="space-y-6" onSubmit={handleAuth}>
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">

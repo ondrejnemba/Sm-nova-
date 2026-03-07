@@ -19,6 +19,8 @@ export default function App() {
   const lastSyncError = useScheduleStore(state => state.lastSyncError);
   const [session, setSession] = useState<Session | null>(null);
   const [authInitialized, setAuthInitialized] = useState(false);
+  const [testMode, setTestMode] = useState(false);
+  const [hardcodedUser, setHardcodedUser] = useState(false);
 
   useEffect(() => {
     if (!supabase) {
@@ -79,17 +81,17 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (supabase && session) {
+    if (supabase && (session || hardcodedUser)) {
       syncWithSupabase();
     }
-  }, [syncWithSupabase, session]);
+  }, [syncWithSupabase, session, hardcodedUser]);
 
   if (!authInitialized) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-50">Načítání...</div>;
   }
 
-  if (supabase && !session) {
-    return <Auth />;
+  if (supabase && !session && !testMode && !hardcodedUser) {
+    return <Auth onTestMode={() => setTestMode(true)} onHardcodedLogin={() => setHardcodedUser(true)} />;
   }
 
   return (
