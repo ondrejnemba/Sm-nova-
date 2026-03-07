@@ -55,7 +55,7 @@ export const Auth = () => {
             .single();
             
           const userEmail = data.user.email?.toLowerCase();
-          const isAdmin = userEmail === 'ondrej.nosek@emba.cz' || userEmail === 'embapama2@gmail.com';
+          const isAdmin = userEmail === 'ondrej.nosek@emba.cz' || userEmail === 'embapama2@gmail.com' || userEmail === 'marek.michalko@emba.cz';
             
           if (!isAdmin && (profileError || !profile?.is_approved)) {
             await supabase.auth.signOut();

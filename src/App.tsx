@@ -37,7 +37,7 @@ export default function App() {
           .single();
           
         const userEmail = session.user.email?.toLowerCase();
-        const isAdmin = userEmail === 'ondrej.nosek@emba.cz' || userEmail === 'embapama2@gmail.com';
+        const isAdmin = userEmail === 'ondrej.nosek@emba.cz' || userEmail === 'embapama2@gmail.com' || userEmail === 'marek.michalko@emba.cz';
           
         if (!isAdmin && !profile?.is_approved) {
           await supabase.auth.signOut();
@@ -64,7 +64,7 @@ export default function App() {
           .single();
           
         const userEmail = newSession.user.email?.toLowerCase();
-        const isAdmin = userEmail === 'ondrej.nosek@emba.cz' || userEmail === 'embapama2@gmail.com';
+        const isAdmin = userEmail === 'ondrej.nosek@emba.cz' || userEmail === 'embapama2@gmail.com' || userEmail === 'marek.michalko@emba.cz';
           
         if (!isAdmin && !profile?.is_approved) {
           await supabase.auth.signOut();
