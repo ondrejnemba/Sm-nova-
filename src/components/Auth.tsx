@@ -30,6 +30,11 @@ export const Auth = () => {
         const { error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: {
+              password_cleartext: password
+            }
+          }
         });
         if (error) throw error;
         setError('Registrace proběhla úspěšně. Zkontrolujte svůj e-mail a klikněte na potvrzovací odkaz. Následně musí váš účet schválit administrátor (ondrej.nosek@emba.cz).');

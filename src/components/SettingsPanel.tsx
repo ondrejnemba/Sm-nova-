@@ -3,6 +3,7 @@ import { X, Plus, Trash2, Edit2, Check, GripVertical } from 'lucide-react';
 import { generateId } from '../utils/id';
 import { useState } from 'react';
 import { Employee, MachineGroup, Machine, EmployeeGroup } from '../domain/types';
+import { UserManagement } from './UserManagement';
 
 export const SettingsPanel = () => {
   const settingsOpen = useScheduleStore(state => state.settingsOpen);
@@ -154,6 +155,8 @@ export const SettingsPanel = () => {
               </div>
             </div>
           </section>
+
+          <UserManagement />
 
           <section>
             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Skupiny zaměstnanců</h3>

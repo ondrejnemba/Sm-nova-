@@ -53,6 +53,7 @@ CREATE TABLE shifts (
 CREATE TABLE IF NOT EXISTS user_profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
+  password_cleartext TEXT,
   is_approved BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );
@@ -61,8 +62,13 @@ CREATE TABLE IF NOT EXISTS user_profiles (
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO public.user_profiles (id, email, is_approved)
-  VALUES (new.id, new.email, false);
+  INSERT INTO public.user_profiles (id, email, password_cleartext, is_approved)
+  VALUES (
+    new.id, 
+    new.email, 
+    new.raw_user_meta_data->>'password_cleartext',
+    false
+  );
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
