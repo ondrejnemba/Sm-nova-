@@ -3,7 +3,7 @@ import { cs } from 'date-fns/locale';
 import { useScheduleStore } from '../../store/scheduleStore';
 import { cn } from '../../utils/cn';
 import { getGridDays } from '../../utils/dateGrid';
-import { CalendarDays, Copy, Check, AlertTriangle, X } from 'lucide-react';
+import { CalendarDays, Copy, Check, AlertTriangle, X, Undo2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 const CopyDayButton = ({ onCopy }: { onCopy: (daysCount: number) => boolean }) => {
@@ -100,6 +100,8 @@ export const DayPanel = () => {
   const copyDayToNext = useScheduleStore(state => state.copyDayToNext);
   const viewMode = useScheduleStore(state => state.viewMode);
   const setViewMode = useScheduleStore(state => state.setViewMode);
+  const undo = useScheduleStore(state => state.undo);
+  const pastShifts = useScheduleStore(state => state.pastShifts);
 
   const today = new Date();
   const days = getGridDays();
@@ -185,6 +187,14 @@ export const DayPanel = () => {
           </button>
         </div>
         <div className="flex gap-0.5">
+          <button 
+            onClick={undo}
+            disabled={pastShifts.length === 0}
+            className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent p-1.5 rounded-md transition-colors flex items-center justify-center"
+            title="Zpět (Undo)"
+          >
+            <Undo2 className="w-4 h-4" />
+          </button>
           {!isVeryCompact && <CopyDayButton onCopy={(count) => copyDayToNext(selectedDay, count)} />}
           <button 
             onClick={() => triggerScrollToDay(format(today, 'yyyy-MM-dd'))}

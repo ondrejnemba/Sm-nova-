@@ -49,15 +49,40 @@ CREATE TABLE shifts (
   "subColumnIndex" INTEGER
 );
 
+-- Vytvoření tabulky pro profily uživatelů (schvalování)
+CREATE TABLE IF NOT EXISTS user_profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  is_approved BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
+);
+
+-- Trigger pro automatické vytvoření profilu při registraci
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.user_profiles (id, email, is_approved)
+  VALUES (new.id, new.email, false);
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
 -- Nastavení RLS (Row Level Security) - pro začátek povolíme vše (v produkci je dobré omezit)
 ALTER TABLE employee_groups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE employees ENABLE ROW LEVEL SECURITY;
 ALTER TABLE machine_groups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE machines ENABLE ROW LEVEL SECURITY;
 ALTER TABLE shifts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Povolit vše pro employee_groups" ON employee_groups FOR ALL USING (true);
 CREATE POLICY "Povolit vše pro employees" ON employees FOR ALL USING (true);
 CREATE POLICY "Povolit vše pro machine_groups" ON machine_groups FOR ALL USING (true);
 CREATE POLICY "Povolit vše pro machines" ON machines FOR ALL USING (true);
 CREATE POLICY "Povolit vše pro shifts" ON shifts FOR ALL USING (true);
+CREATE POLICY "Povolit vše pro user_profiles" ON user_profiles FOR ALL USING (true);

@@ -71,6 +71,13 @@ interface ScheduleState {
   triggerScrollToDay: (day: string) => void;
   setViewMode: (mode: 'detail' | 'overview' | 'week') => void;
   
+  // History
+  pastShifts: Shift[][];
+  futureShifts: Shift[][];
+  undo: () => void;
+  redo: () => void;
+  saveHistory: () => void;
+
   // Supabase Sync
   isSyncing: boolean;
   lastSyncError: string | null;
@@ -121,6 +128,53 @@ export const useScheduleStore = create<ScheduleState>()(
       viewMode: 'detail',
       isSyncing: false,
       lastSyncError: null,
+      pastShifts: [],
+      futureShifts: [],
+
+      saveHistory: () => set((state) => {
+        const newPast = [...state.pastShifts, state.shifts].slice(-50); // Keep last 50 states
+        return { pastShifts: newPast, futureShifts: [] };
+      }),
+
+      undo: () => set((state) => {
+        if (state.pastShifts.length === 0) return state;
+        const newPast = [...state.pastShifts];
+        const previousShifts = newPast.pop()!;
+        
+        if (supabase) {
+          supabase.from('shifts').delete().neq('id', '0').then(() => {
+            if (previousShifts.length > 0) {
+              supabase.from('shifts').insert(previousShifts).then(({ error }) => { if (error) console.error(error); });
+            }
+          });
+        }
+
+        return {
+          shifts: previousShifts,
+          pastShifts: newPast,
+          futureShifts: [state.shifts, ...state.futureShifts]
+        };
+      }),
+
+      redo: () => set((state) => {
+        if (state.futureShifts.length === 0) return state;
+        const newFuture = [...state.futureShifts];
+        const nextShifts = newFuture.shift()!;
+        
+        if (supabase) {
+          supabase.from('shifts').delete().neq('id', '0').then(() => {
+            if (nextShifts.length > 0) {
+              supabase.from('shifts').insert(nextShifts).then(({ error }) => { if (error) console.error(error); });
+            }
+          });
+        }
+
+        return {
+          shifts: nextShifts,
+          pastShifts: [...state.pastShifts, state.shifts],
+          futureShifts: newFuture
+        };
+      }),
 
       addEmployee: (emp) => set((state) => {
         const newState = { employees: [...state.employees, { maxShiftHours: 12, ...emp }] };
@@ -228,21 +282,30 @@ export const useScheduleStore = create<ScheduleState>()(
         return { machines: result };
       }),
 
-      addShift: (shift) => set((state) => {
-        const newState = { shifts: [...state.shifts, shift] };
-        if (supabase) supabase.from('shifts').insert(shift).then(({ error }) => { if (error) console.error(error); });
-        return newState;
-      }),
-      updateShift: (id, shift) => set((state) => {
-        const newState = { shifts: state.shifts.map(s => s.id === id ? { ...s, ...shift } : s) };
-        if (supabase) supabase.from('shifts').update(shift).eq('id', id).then(({ error }) => { if (error) console.error(error); });
-        return newState;
-      }),
-      deleteShift: (id) => set((state) => {
-        const newState = { shifts: state.shifts.filter(s => s.id !== id) };
-        if (supabase) supabase.from('shifts').delete().eq('id', id).then(({ error }) => { if (error) console.error(error); });
-        return newState;
-      }),
+      addShift: (shift) => {
+        get().saveHistory();
+        set((state) => {
+          const newState = { shifts: [...state.shifts, shift] };
+          if (supabase) supabase.from('shifts').insert(shift).then(({ error }) => { if (error) console.error(error); });
+          return newState;
+        });
+      },
+      updateShift: (id, shift) => {
+        get().saveHistory();
+        set((state) => {
+          const newState = { shifts: state.shifts.map(s => s.id === id ? { ...s, ...shift } : s) };
+          if (supabase) supabase.from('shifts').update(shift).eq('id', id).then(({ error }) => { if (error) console.error(error); });
+          return newState;
+        });
+      },
+      deleteShift: (id) => {
+        get().saveHistory();
+        set((state) => {
+          const newState = { shifts: state.shifts.filter(s => s.id !== id) };
+          if (supabase) supabase.from('shifts').delete().eq('id', id).then(({ error }) => { if (error) console.error(error); });
+          return newState;
+        });
+      },
 
       setSelectedDay: (day) => set({ selectedDay: day }),
       setSelectedEmployeeId: (id) => set({ selectedEmployeeId: id }),
@@ -273,6 +336,7 @@ export const useScheduleStore = create<ScheduleState>()(
       })),
       copyDayToNext: (day, daysCount = 1) => {
         let totalCopiedCount = 0;
+        get().saveHistory();
         set((state) => {
           // Parse the day string (e.g. '2026-03-04') into local year, month, day
           const [year, month, date] = day.split('-').map(Number);
@@ -337,38 +401,41 @@ export const useScheduleStore = create<ScheduleState>()(
         });
         return totalCopiedCount > 0;
       },
-      copySelectedShifts: (newStartMinuteAbsolute) => set((state) => {
-        if (state.selectedShiftIds.length === 0) return state;
-        
-        const selectedShifts = state.shifts.filter(s => state.selectedShiftIds.includes(s.id));
-        if (selectedShifts.length === 0) return state;
-        
-        // Find the earliest shift to calculate offsets
-        const earliestShift = selectedShifts.reduce((earliest, current) => 
-          current.startMinuteAbsolute < earliest.startMinuteAbsolute ? current : earliest
-        , selectedShifts[0]);
-        
-        const timeOffset = newStartMinuteAbsolute - earliestShift.startMinuteAbsolute;
+      copySelectedShifts: (newStartMinuteAbsolute) => {
+        get().saveHistory();
+        set((state) => {
+          if (state.selectedShiftIds.length === 0) return state;
+          
+          const selectedShifts = state.shifts.filter(s => state.selectedShiftIds.includes(s.id));
+          if (selectedShifts.length === 0) return state;
+          
+          // Find the earliest shift to calculate offsets
+          const earliestShift = selectedShifts.reduce((earliest, current) => 
+            current.startMinuteAbsolute < earliest.startMinuteAbsolute ? current : earliest
+          , selectedShifts[0]);
+          
+          const timeOffset = newStartMinuteAbsolute - earliestShift.startMinuteAbsolute;
 
-        const newShifts = selectedShifts.map(shift => {
-          return {
-            ...shift,
-            id: crypto.randomUUID(),
-            // Keep original machine and column exactly as they were
-            machineId: shift.machineId,
-            subColumnIndex: shift.subColumnIndex,
-            startMinuteAbsolute: shift.startMinuteAbsolute + timeOffset,
-            endMinuteAbsolute: shift.endMinuteAbsolute + timeOffset
+          const newShifts = selectedShifts.map(shift => {
+            return {
+              ...shift,
+              id: crypto.randomUUID(),
+              // Keep original machine and column exactly as they were
+              machineId: shift.machineId,
+              subColumnIndex: shift.subColumnIndex,
+              startMinuteAbsolute: shift.startMinuteAbsolute + timeOffset,
+              endMinuteAbsolute: shift.endMinuteAbsolute + timeOffset
+            };
+          });
+
+          const newState = { 
+            shifts: [...state.shifts, ...newShifts],
+            selectedShiftIds: newShifts.map(s => s.id)
           };
+          if (supabase) supabase.from('shifts').insert(newShifts).then(({ error }) => { if (error) console.error(error); });
+          return newState;
         });
-
-        const newState = { 
-          shifts: [...state.shifts, ...newShifts],
-          selectedShiftIds: newShifts.map(s => s.id)
-        };
-        if (supabase) supabase.from('shifts').insert(newShifts).then(({ error }) => { if (error) console.error(error); });
-        return newState;
-      }),
+      },
       toggleSettings: () => set((state) => ({ settingsOpen: !state.settingsOpen })),
       toggleExport: () => set((state) => ({ exportOpen: !state.exportOpen })),
       toggleGroup: (id) => set((state) => ({
